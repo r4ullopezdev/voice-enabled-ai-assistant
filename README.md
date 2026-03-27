@@ -36,7 +36,7 @@ Not included:
 
 ### Frontend
 
-[`index.html`](/C:/Users/Raul%20Lopez/Documents/upwork01/index.html)
+`index.html`
 
 - renders the interface
 - captures text input
@@ -46,7 +46,7 @@ Not included:
 
 ### Backend
 
-[`server.js`](/C:/Users/Raul%20Lopez/Documents/upwork01/server.js)
+`server.js`
 
 - serves the frontend
 - exposes local API routes
@@ -55,7 +55,7 @@ Not included:
 
 ### Configuration
 
-[`.env.example`](/C:/Users/Raul%20Lopez/Documents/upwork01/.env.example)
+`.env.example`
 
 - documents required environment variables
 - keeps runtime credentials out of version control
@@ -158,4 +158,4 @@ Issues and pull requests are welcome when they improve clarity, reliability, or 
 
 ## License
 
-MIT. See [`LICENSE`](/C:/Users/Raul%20Lopez/Documents/upwork01/LICENSE).
+MIT. See [`LICENSE`](./LICENSE).
