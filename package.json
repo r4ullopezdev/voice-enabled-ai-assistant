@@ -1,17 +1,17 @@
 {
-  "name": "tdt-voice-test",
+  "name": "voice-enabled-ai-assistant",
   "version": "1.0.0",
   "description": "Minimal voice-enabled AI assistant prototype using Chatbase and ElevenLabs.",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/r4ullopezdev/tdt-voice-test.git"
+    "url": "git+https://github.com/r4ullopezdev/voice-enabled-ai-assistant.git"
   },
   "bugs": {
-    "url": "https://github.com/r4ullopezdev/tdt-voice-test/issues"
+    "url": "https://github.com/r4ullopezdev/voice-enabled-ai-assistant/issues"
   },
-  "homepage": "https://github.com/r4ullopezdev/tdt-voice-test#readme",
+  "homepage": "https://github.com/r4ullopezdev/voice-enabled-ai-assistant#readme",
   "scripts": {
     "start": "node server.js"
   }

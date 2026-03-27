@@ -1,4 +1,4 @@
-# TDT Voice Test
+# Voice Enabled AI Assistant
 
 Minimal voice-enabled AI assistant prototype for validating a browser-to-backend interaction loop with Chatbase and ElevenLabs.
 
