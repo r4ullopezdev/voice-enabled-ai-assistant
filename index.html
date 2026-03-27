@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TDT Voice Test</title>
+  <style>
+    :root {
+      --bg: #f2ece2;
+      --panel: rgba(255, 250, 243, 0.92);
+      --panel-border: rgba(92, 64, 51, 0.12);
+      --text: #2f241f;
+      --muted: #6f6259;
+      --accent: #bc5f3c;
+      --accent-dark: #8f4327;
+      --secondary: #6d5244;
+      --secondary-dark: #4f392f;
+      --shadow: 0 24px 60px rgba(70, 43, 30, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(188, 95, 60, 0.2), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(120, 96, 72, 0.18), transparent 28%),
+        linear-gradient(135deg, #efe6da 0%, #f8f2ea 46%, #ece2d6 100%);
+    }
+
+    .app {
+      width: min(100%, 760px);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 56ch;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(92, 64, 51, 0.15);
+      border-radius: 16px;
+      padding: 16px 18px;
+      font: inherit;
+      font-size: 1rem;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.72);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    input:focus {
+      border-color: rgba(188, 95, 60, 0.6);
+      box-shadow: 0 0 0 4px rgba(188, 95, 60, 0.12);
+      transform: translateY(-1px);
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 16px 24px;
+      font: inherit;
+      font-size: 1rem;
+      color: #fff8f3;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      box-shadow: 0 14px 30px rgba(143, 67, 39, 0.24);
+    }
+
+    button:hover:enabled {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .mic-btn {
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+      box-shadow: 0 14px 30px rgba(69, 46, 35, 0.2);
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .card {
+      border: 1px solid rgba(92, 64, 51, 0.12);
+      border-radius: 18px;
+      padding: 18px 20px;
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #status,
+    #replyBox {
+      margin: 0;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    audio {
+      width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 24px;
+        border-radius: 20px;
+      }
+
+      .composer {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>TDT AI Voice Test</h1>
+    <p class="subtitle">Send a message, get the coach response in text, and generate voice playback in the same flow.</p>
+
+    <div class="composer">
+      <input id="msg" placeholder="Type message" />
+      <button id="sendBtn" onclick="send()">Send</button>
+      <button id="micBtn" class="mic-btn" onclick="toggleMic()">Speak</button>
+    </div>
+
+    <section class="stack">
+      <div class="card">
+        <h3>Status</h3>
+        <p id="status">Ready.</p>
+      </div>
+
+      <div class="card">
+        <h3>AI Response</h3>
+        <p id="replyBox"></p>
+      </div>
+
+      <div class="card">
+        <h3>Voice Output</h3>
+        <audio id="audio" controls></audio>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let isBusy = false
+    let isRecording = false
+    let mediaRecorder = null
+    let mediaStream = null
+    let audioChunks = []
+    let recognition = null
+    let recognitionTranscript = ""
+    let recognitionStopping = false
+
+    const statusEl = document.getElementById("status")
+    const replyBoxEl = document.getElementById("replyBox")
+    const msgEl = document.getElementById("msg")
+    const sendBtnEl = document.getElementById("sendBtn")
+    const micBtnEl = document.getElementById("micBtn")
+    const audioEl = document.getElementById("audio")
+    const isFileOrigin = window.location.protocol === "file:"
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null
+
+    function setStatus(message) {
+      statusEl.textContent = message
+    }
+
+    function setBusy(value) {
+      isBusy = value
+      updateControls()
+    }
+
+    function updateControls() {
+      msgEl.disabled = isBusy || isRecording
+      sendBtnEl.disabled = isBusy || isRecording
+      micBtnEl.disabled = isBusy
+      micBtnEl.textContent = isRecording ? "Stop" : "Speak"
+    }
+
+    function buildFetchError(error, endpoint) {
+      if (error && error.name === "TypeError") {
+        if (isFileOrigin) {
+          return 'Cannot reach ' + endpoint + '. Open the app through http://localhost:3000 instead of file://.'
+        }
+
+        return 'Cannot reach ' + endpoint + '. Make sure the local server is running on the same origin.'
+      }
+
+      return error && error.message ? error.message : "Request failed"
+    }
+
+    async function requestJson(endpoint, options) {
+      let response
+
+      try {
+        response = await fetch(endpoint, options)
+      } catch (error) {
+        throw new Error(buildFetchError(error, endpoint))
+      }
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error((data && data.error) || "Request failed")
+      }
+
+      return data
+    }
+
+    async function send(force = false) {
+      const text = msgEl.value.trim()
+
+      if ((!force && isBusy) || isRecording) {
+        return
+      }
+
+      if (!text) {
+        setStatus("Write a message first.")
+        return
+      }
+
+      setBusy(true)
+      setStatus("Sending message...")
+
+      try {
+        const data = await requestJson("/api/chat-voice", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: text })
+        })
+
+        const reply = data.reply || ""
+        replyBoxEl.textContent = reply
+
+        if (!reply) {
+          throw new Error("The AI returned an empty reply")
+        }
+
+        if (data.audioBase64) {
+          audioEl.src = "data:" + (data.audioMimeType || "audio/mpeg") + ";base64," + data.audioBase64
+          audioEl.play().catch(() => {
+            console.log("Autoplay blocked by browser")
+          })
+        }
+
+        setStatus("Done.")
+      } catch (error) {
+        console.error(error)
+        setStatus("Error: " + error.message)
+      } finally {
+        setBusy(false)
+      }
+    }
+
+    async function toggleMic() {
+      if (isBusy) {
+        return
+      }
+
+      if (isRecording) {
+        stopRecording()
+        return
+      }
+
+      if (SpeechRecognitionCtor) {
+        startSpeechRecognition()
+        return
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        setStatus("Audio recording is not supported in this browser.")
+        return
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        audioChunks = []
+        mediaRecorder = new MediaRecorder(mediaStream)
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            audioChunks.push(event.data)
+          }
+        }
+
+        mediaRecorder.onstop = async () => {
+          isRecording = false
+          updateControls()
+          setBusy(true)
+          setStatus("Transcribing audio...")
+
+          try {
+            const audioBlob = new Blob(audioChunks, {
+              type: mediaRecorder.mimeType || "audio/webm"
+            })
+
+            const data = await requestJson("/api/transcribe", {
+              method: "POST",
+              headers: {
+                "Content-Type": audioBlob.type || "audio/webm"
+              },
+              body: audioBlob
+            })
+
+            msgEl.value = data.text || ""
+
+            if (!msgEl.value.trim()) {
+              throw new Error("No speech detected")
+            }
+
+            setStatus("Transcription ready. Sending...")
+            await send(true)
+          } catch (error) {
+            console.error(error)
+            setStatus("Error: " + error.message)
+          } finally {
+            cleanupStream()
+            setBusy(false)
+          }
+        }
+
+        mediaRecorder.start()
+        isRecording = true
+        updateControls()
+        setStatus("Listening... Click Stop when you finish.")
+      } catch (error) {
+        console.error(error)
+        cleanupStream()
+        setStatus("Mic error: " + error.message)
+      }
+    }
+
+    function stopRecording() {
+      if (recognition) {
+        recognitionStopping = true
+        setStatus("Stopping recording...")
+        recognition.stop()
+        return
+      }
+
+      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        return
+      }
+
+      setStatus("Stopping recording...")
+      mediaRecorder.stop()
+    }
+
+    function startSpeechRecognition() {
+      try {
+        recognitionTranscript = ""
+        recognitionStopping = false
+        recognition = new SpeechRecognitionCtor()
+        recognition.lang = "en-US"
+        recognition.interimResults = false
+        recognition.maxAlternatives = 1
+
+        recognition.onresult = (event) => {
+          recognitionTranscript = Array.from(event.results)
+            .map((result) => result[0] && result[0].transcript ? result[0].transcript : "")
+            .join(" ")
+            .trim()
+        }
+
+        recognition.onerror = (event) => {
+          if (recognitionStopping && event.error === "aborted") {
+            return
+          }
+
+          console.error(event)
+          recognition = null
+          isRecording = false
+          updateControls()
+          setStatus("Mic error: " + (event.message || event.error || "Speech recognition failed"))
+        }
+
+        recognition.onend = async () => {
+          const transcript = recognitionTranscript.trim()
+          recognition = null
+          isRecording = false
+          updateControls()
+
+          if (!transcript) {
+            setStatus("No speech detected.")
+            return
+          }
+
+          msgEl.value = transcript
+          setStatus("Transcription ready. Sending...")
+          await send(true)
+        }
+
+        recognition.start()
+        isRecording = true
+        updateControls()
+        setStatus("Listening... Click Stop when you finish.")
+      } catch (error) {
+        console.error(error)
+        recognition = null
+        setStatus("Mic error: " + error.message)
+      }
+    }
+
+    function cleanupStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop())
+      }
+
+      mediaStream = null
+      mediaRecorder = null
+      audioChunks = []
+    }
+
+    msgEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault()
+        send()
+      }
+    })
+
+    updateControls()
+  </script>
+</body>
+</html>
