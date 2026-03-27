@@ -1,109 +1,107 @@
 # TDT Voice Test
 
-Public-safe prototype for a browser-based AI coach flow with:
+Minimal voice-enabled AI assistant prototype for validating a browser-to-backend interaction loop with Chatbase and ElevenLabs.
+
+## Overview
+
+This repository contains a small full-stack implementation that supports:
 
 - text input
-- microphone capture
-- Chatbase response generation
-- ElevenLabs voice playback
+- microphone-triggered input
+- AI response generation through Chatbase
+- synthesized voice playback through ElevenLabs
 
-This project is a lightweight proof of concept for testing an AI assistant experience before integrating it into a members area or production web app.
+The project is intentionally lightweight. It is designed to validate product direction and integration constraints before committing to a larger production build.
 
-## What This Is
+## Scope
 
-`TDT Voice Test` is a minimal full-stack demo that lets a user:
+Included:
 
-1. type a message or speak through the microphone
-2. send that input to an AI coach
-3. receive a text reply
-4. hear the response played back as audio
+- single-page browser UI
+- local Node.js HTTP server
+- environment-driven configuration
+- end-to-end text-to-response flow
+- browser-based microphone flow for local testing
 
-The current version is intentionally small:
-
-- frontend: plain HTML, CSS, and browser APIs
-- backend: a simple Node.js HTTP server
-- no framework
-- no database
-- no authentication layer
-
-## Who This Is For
-
-This repo is useful if you want to:
-
-- prototype a voice-enabled AI assistant
-- test a coaching or support chatbot with voice output
-- validate a browser-based mic-to-response flow before production integration
-- study a very small example without React, Next.js, or other framework overhead
-
-## Features
-
-- clean single-page UI
-- text message sending
-- microphone button for voice input
-- browser speech recognition fallback path when supported
-- Chatbase API request for the AI reply
-- ElevenLabs text-to-speech playback
-- local `.env` configuration
-
-## Current Architecture
-
-- `index.html`
-  Contains the UI and browser-side logic.
-
-- `server.js`
-  Serves the page and exposes local API routes for chat and voice.
-
-- `.env.example`
-  Template for required environment variables.
-
-## Important Status Note
-
-This is a prototype, not a production-ready package.
-
-It is suitable for:
-
-- local testing
-- demoing the interaction flow
-- validating UX direction
-
-It still needs additional work for production use, especially around:
+Not included:
 
 - authentication
-- error handling depth
-- browser compatibility
-- iframe compatibility
-- CORS strategy
-- HTTPS deployment
-- secure secret management
-- better transcription reliability across browsers
+- persistence
+- analytics
+- test suite
+- deployment configuration
+- hardened production controls
+
+## Architecture
+
+### Frontend
+
+[`index.html`](/C:/Users/Raul%20Lopez/Documents/upwork01/index.html)
+
+- renders the interface
+- captures text input
+- handles microphone interaction
+- calls local API endpoints
+- plays synthesized audio responses
+
+### Backend
+
+[`server.js`](/C:/Users/Raul%20Lopez/Documents/upwork01/server.js)
+
+- serves the frontend
+- exposes local API routes
+- forwards user input to Chatbase
+- converts AI text output to speech through ElevenLabs
+
+### Configuration
+
+[`.env.example`](/C:/Users/Raul%20Lopez/Documents/upwork01/.env.example)
+
+- documents required environment variables
+- keeps runtime credentials out of version control
+
+## Request Flow
+
+### Text path
+
+1. User submits a message from the browser.
+2. Frontend sends the payload to `/api/chat-voice`.
+3. Backend requests a response from Chatbase.
+4. Backend sends the reply text to ElevenLabs.
+5. Frontend receives reply text and audio, then renders and plays the result.
+
+### Voice path
+
+1. User starts microphone capture.
+2. The browser attempts speech recognition when supported.
+3. The recognized transcript is inserted into the input field.
+4. The standard text path executes.
+
+This implementation favors simplicity for prototyping. In a production integration, server-side transcription is usually the more reliable fallback strategy.
 
 ## Requirements
 
-- Node.js 18+ recommended
-- Chatbase API key and chatbot ID
-- ElevenLabs API key and voice ID
-- optional OpenAI API key if you later switch to server-side transcription
+- Node.js 18+
+- Chatbase API key
+- Chatbase chatbot ID
+- ElevenLabs API key
+- ElevenLabs voice ID
+- optional OpenAI API key for future server-side transcription work
 
-## Local Setup
+## Local Development
 
 1. Clone the repository.
 2. Copy `.env.example` to `.env`.
-3. Add your own credentials to `.env`.
-4. Run:
+3. Provide valid credentials in `.env`.
+4. Start the server:
 
 ```bash
 node server.js
 ```
 
-5. Open:
-
-```text
-http://localhost:3000
-```
+5. Open `http://localhost:3000`.
 
 ## Environment Variables
-
-Create a local `.env` file with:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
@@ -113,99 +111,51 @@ ELEVEN_API=your_elevenlabs_api_key
 VOICE_ID=your_elevenlabs_voice_id
 ```
 
-## How The Flow Works
+## Operational Notes
 
-### Text flow
-
-1. User types a message.
-2. Frontend sends it to `/api/chat-voice`.
-3. Server calls Chatbase.
-4. Server sends the reply text to ElevenLabs.
-5. Frontend receives text plus audio and plays the audio.
-
-### Voice flow
-
-1. User clicks `Speak`.
-2. The browser tries speech recognition first when available.
-3. The transcribed text is inserted into the input.
-4. The normal chat flow runs.
-
-If browser speech recognition is not available, the app can be extended to use server-side transcription instead.
-
-## Browser Notes
-
-Microphone support is environment-dependent.
-
-In practice, results are best when:
-
-- using Chrome or Edge
-- running over `http://localhost` in local development
-- running over `https` in production
-- not being embedded in a restricted `iframe`
-
-Some production environments may require extra work because microphone permissions can be blocked by:
-
-- browser limitations
-- iframe sandboxing
-- permissions policy headers
-- members area platform restrictions
+- `http://localhost` is sufficient for local testing.
+- Production deployment should run over `https`.
+- Microphone behavior depends on browser support and embedding context.
+- Browser speech recognition support is not uniform across Chrome, Edge, Safari, and Firefox.
+- If this experience is embedded inside a members area, permissions policy, iframe restrictions, and CORS strategy need to be validated explicitly.
 
 ## Security
 
-This repository is intended to be safe for public GitHub publishing.
+This repository is structured to be safe for public source control:
 
-Rules:
+- runtime secrets are expected in `.env`
+- `.env` is excluded from Git
+- no live credentials should be committed
+- any previously exposed credentials should be rotated
 
-- never commit `.env`
-- never commit live API keys
-- use environment variables for all secrets
-- rotate keys immediately if they were ever exposed
+## Production Considerations
 
-Included in `.gitignore`:
+This codebase is a prototype foundation, not a production drop-in.
 
-- `.env`
-- local logs
-- `node_modules`
+Before using the flow in a live product, address at least the following:
 
-## Production Integration Notes
-
-If you plan to embed this inside a members area, expect to adjust:
-
-- API endpoint locations
-- HTTPS setup
-- authentication
-- CORS
-- microphone permissions
-- iframe strategy
-- browser fallback behavior
-
-A stronger production version would likely move toward:
-
-- a dedicated frontend app or embeddable widget
-- a hosted backend API
-- server-side transcription fallback
-- structured logging
+- authentication and request authorization
+- robust error handling and user feedback
+- HTTPS and deployment topology
+- logging and monitoring
 - rate limiting
-- better validation and monitoring
+- browser compatibility strategy
+- server-side transcription fallback
+- embeddable widget or app-shell integration approach
 
-## Roadmap Ideas
+## Roadmap
 
 - add server-side transcription fallback
 - add deployment instructions
-- add embeddable widget mode
-- add configurable prompts
-- add conversation history
-- add better status and error states
+- add embeddable integration mode
+- improve observability
 - add automated tests
+- formalize API boundaries
 
 ## Contributing
 
-Issues and suggestions are welcome.
-
-If you use this project as a base for your own voice assistant workflow, feel free to fork it and adapt it to your stack.
+Issues and pull requests are welcome when they improve clarity, reliability, or production readiness.
 
 ## License
 
-No license has been added yet.
-
-If you want public reuse, add an open-source license such as MIT.
+MIT. See [`LICENSE`](/C:/Users/Raul%20Lopez/Documents/upwork01/LICENSE).
