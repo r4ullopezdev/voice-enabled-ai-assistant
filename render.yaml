@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: voice-enabled-ai-assistant
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CHATBASE_API
+        sync: false
+      - key: CHATBOT_ID
+        sync: false
+      - key: ELEVEN_API
+        sync: false
+      - key: VOICE_ID
+        sync: false

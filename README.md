@@ -101,6 +101,28 @@ node server.js
 
 5. Open `http://localhost:3000`.
 
+## Deploying to Render
+
+This project can be deployed to Render as a Node web service.
+
+Recommended setup:
+
+1. Create a new Web Service in Render from the private GitHub repository.
+2. Let Render detect the included `render.yaml`.
+3. Set the required environment variables in the Render dashboard:
+   - `OPENAI_API_KEY`
+   - `CHATBASE_API`
+   - `CHATBOT_ID`
+   - `ELEVEN_API`
+   - `VOICE_ID`
+4. Deploy.
+
+Notes:
+
+- Do not commit `.env` to Git, even for private repositories.
+- Use Render environment variables for credentials.
+- Once deployed, Render will expose the app over `https`, which is preferable for browser microphone support in production.
+
 ## Environment Variables
 
 ```env
