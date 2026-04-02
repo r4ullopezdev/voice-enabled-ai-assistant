@@ -243,6 +243,13 @@
       updateControls()
     }
 
+    function stopCurrentPlayback() {
+      playbackToken += 1
+      audioEl.pause()
+      audioEl.currentTime = 0
+      audioEl.src = ""
+    }
+
     function updateSessionIndicator() {
       const hasContext = Boolean(conversationId) || conversationHistory.length > 0
       sessionIndicatorEl.dataset.state = hasContext ? "active" : "new"
@@ -349,7 +356,7 @@
     }
 
     function playAudioResponse(data) {
-      playbackToken += 1
+      stopCurrentPlayback()
       const token = playbackToken
 
       if (Array.isArray(data.audioSegments) && data.audioSegments.length > 0) {
@@ -583,6 +590,7 @@
     }
 
     function resetConversation() {
+      stopCurrentPlayback()
       conversationId = null
       conversationHistory = []
       localStorage.removeItem("tdt_conversation_id")
