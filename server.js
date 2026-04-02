@@ -58,9 +58,16 @@ function escapeXml(text) {
 
 function addPauses(text) {
   return escapeXml(text)
-    .replace(/\.\.\./g, '<break time="1.5s"/>')
-    .replace(/\n+/g, '<break time="1.2s"/>')
-    .replace(/\./g, '.<break time="0.8s"/>')
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .replace(/\.\.\./g, '<break time="1.8s"/>')
+    .replace(/:\s/g, ':<break time="0.9s"/> ')
+    .replace(/;\s/g, ';<break time="0.8s"/> ')
+    .replace(/,\s/g, ',<break time="0.45s"/> ')
+    .replace(/\?\s/g, '?<break time="1.1s"/> ')
+    .replace(/!\s/g, '!<break time="1.0s"/> ')
+    .replace(/\.\s/g, '.<break time="1.15s"/> ')
+    .replace(/\n/g, '<break time="1.4s"/>')
 }
 
 function serveIndex(res) {
