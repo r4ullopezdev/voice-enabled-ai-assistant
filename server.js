@@ -96,7 +96,7 @@ async function synthesizeSpeech(text) {
 
 function buildSpeechPlan(reply) {
   const segments = []
-  const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|“([^”]+)”|([^\n]+))/gi
+  const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|([^\n]+))/gi
   const breatheRegex = /\b(?:breath|breathe)\s+in(?:\s*\.\.\.|\s*[.!?])?/gi
   const cues = []
   let match
