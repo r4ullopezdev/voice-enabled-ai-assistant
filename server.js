@@ -94,42 +94,48 @@ async function synthesizeSpeech(text) {
 }
 
 function buildSpeechPlan(reply) {
-  const repeatMatch = reply.match(/repeat after me:\s*(?:"([^"]+)"|“([^”]+)”|([^\n.!?]+))([\s\S]*)/i)
-
-  if (!repeatMatch) {
-    return [{ text: addPauses(reply), pauseAfterMs: 0 }]
-  }
-
-  const markerIndex = repeatMatch.index || 0
-  const beforeText = reply.slice(0, markerIndex).trim()
-  const repeatPhrase = (repeatMatch[1] || repeatMatch[2] || repeatMatch[3] || "").trim()
-  const afterText = (repeatMatch[4] || "").trim()
   const segments = []
+  const repeatRegex = /repeat after me:\s*(?:"([^"]+)"|“([^”]+)”|([^\n.!?]+))/gi
+  let lastIndex = 0
+  let match
 
-  if (beforeText) {
-    segments.push({
-      text: addPauses(beforeText + "\nRepeat after me."),
-      pauseAfterMs: 700
-    })
-  } else {
+  while ((match = repeatRegex.exec(reply)) !== null) {
+    const beforeText = reply.slice(lastIndex, match.index).trim()
+    const repeatPhrase = (match[1] || match[2] || match[3] || "").trim()
+
+    if (beforeText) {
+      segments.push({
+        text: addPauses(beforeText),
+        pauseAfterMs: 0
+      })
+    }
+
     segments.push({
       text: "Repeat after me.",
       pauseAfterMs: 700
     })
+
+    if (repeatPhrase) {
+      segments.push({
+        text: repeatPhrase,
+        pauseAfterMs: 4500
+      })
+    }
+
+    lastIndex = repeatRegex.lastIndex
   }
 
-  if (repeatPhrase) {
-    segments.push({
-      text: repeatPhrase,
-      pauseAfterMs: 4500
-    })
-  }
+  const trailingText = reply.slice(lastIndex).trim()
 
-  if (afterText) {
+  if (trailingText) {
     segments.push({
-      text: addPauses(afterText),
+      text: addPauses(trailingText),
       pauseAfterMs: 0
     })
+  }
+
+  if (segments.length === 0) {
+    return [{ text: addPauses(reply), pauseAfterMs: 0 }]
   }
 
   return segments.filter((segment) => segment.text)
