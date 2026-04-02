@@ -51,6 +51,7 @@ function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
+    .replace(/\.\.\./g, "...\n\n")
     .replace(/Now tap/gi, "\nNow tap")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")

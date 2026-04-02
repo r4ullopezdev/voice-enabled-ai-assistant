@@ -167,10 +167,6 @@
       white-space: pre-wrap;
     }
 
-    audio {
-      width: 100%;
-    }
-
     @media (max-width: 640px) {
       .app {
         padding: 24px;
@@ -211,10 +207,6 @@
         <p id="replyBox"></p>
       </div>
 
-      <div class="card">
-        <h3>Voice Output</h3>
-        <audio id="audio" controls></audio>
-      </div>
     </section>
   </main>
 
@@ -238,7 +230,7 @@
     const sendBtnEl = document.getElementById("sendBtn")
     const micBtnEl = document.getElementById("micBtn")
     const resetBtnEl = document.getElementById("resetBtn")
-    const audioEl = document.getElementById("audio")
+    const audioEl = new Audio()
     const isFileOrigin = window.location.protocol === "file:"
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null
 
