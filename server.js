@@ -52,10 +52,11 @@ function addPauses(text) {
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
     .replace(/Repeat after me:/gi, "Repeat after me...\n")
+    .replace(/"([^"]+)"/g, '"$1"\n\n\n\n\n')
     .replace(/Now tap/gi, "\nNow tap")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\n{6,}/g, "\n\n\n\n\n")
 }
 
 function serveIndex(res) {
