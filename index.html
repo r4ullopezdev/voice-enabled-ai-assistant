@@ -138,6 +138,28 @@
       color: var(--muted);
     }
 
+    .session-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      color: var(--secondary-dark);
+      background: rgba(109, 82, 68, 0.1);
+    }
+
+    .session-indicator[data-state="active"] {
+      color: #22543d;
+      background: rgba(56, 161, 105, 0.14);
+    }
+
+    .session-indicator[data-state="new"] {
+      color: var(--secondary-dark);
+      background: rgba(109, 82, 68, 0.1);
+    }
+
     #status,
     #replyBox {
       margin: 0;
@@ -180,6 +202,7 @@
     <section class="stack">
       <div class="card">
         <h3>Status</h3>
+        <p id="sessionIndicator" class="session-indicator" data-state="new">New conversation</p>
         <p id="status">Ready.</p>
       </div>
 
@@ -208,6 +231,7 @@
     let recognitionStopping = false
 
     const statusEl = document.getElementById("status")
+    const sessionIndicatorEl = document.getElementById("sessionIndicator")
     const replyBoxEl = document.getElementById("replyBox")
     const msgEl = document.getElementById("msg")
     const sendBtnEl = document.getElementById("sendBtn")
@@ -226,6 +250,12 @@
       updateControls()
     }
 
+    function updateSessionIndicator() {
+      const hasContext = Boolean(conversationId) || conversationHistory.length > 0
+      sessionIndicatorEl.dataset.state = hasContext ? "active" : "new"
+      sessionIndicatorEl.textContent = hasContext ? "Session active" : "New conversation"
+    }
+
     function loadConversationHistory() {
       try {
         const stored = localStorage.getItem("tdt_conversation_history")
@@ -241,6 +271,7 @@
 
     function saveConversationHistory() {
       localStorage.setItem("tdt_conversation_history", JSON.stringify(conversationHistory))
+      updateSessionIndicator()
     }
 
     function buildOutgoingMessages(userMessage) {
@@ -319,6 +350,7 @@
         if (data.conversationId) {
           conversationId = data.conversationId
           localStorage.setItem("tdt_conversation_id", conversationId)
+          updateSessionIndicator()
         }
 
         const reply = data.reply || ""
@@ -513,6 +545,7 @@
       localStorage.removeItem("tdt_conversation_history")
       replyBoxEl.textContent = ""
       msgEl.value = ""
+      updateSessionIndicator()
       setStatus("New session started.")
     }
 
@@ -523,6 +556,7 @@
       }
     })
 
+    updateSessionIndicator()
     updateControls()
   </script>
 </body>
