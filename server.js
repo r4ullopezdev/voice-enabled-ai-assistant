@@ -60,14 +60,14 @@ function addPauses(text) {
   return escapeXml(text)
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
-    .replace(/\.\.\./g, '<break time="1.8s"/>')
-    .replace(/:\s/g, ':<break time="0.9s"/> ')
-    .replace(/;\s/g, ';<break time="0.8s"/> ')
-    .replace(/,\s/g, ',<break time="0.45s"/> ')
-    .replace(/\?\s/g, '?<break time="1.1s"/> ')
-    .replace(/!\s/g, '!<break time="1.0s"/> ')
-    .replace(/\.\s/g, '.<break time="1.15s"/> ')
-    .replace(/\n/g, '<break time="1.4s"/>')
+    .replace(/\.\.\./g, '<break time="1.6s"/>')
+    .replace(/:\s/g, ':<break time="0.75s"/> ')
+    .replace(/;\s/g, ';<break time="0.65s"/> ')
+    .replace(/,\s/g, ',<break time="0.35s"/> ')
+    .replace(/\?\s/g, '?<break time="0.95s"/> ')
+    .replace(/!\s/g, '!<break time="0.9s"/> ')
+    .replace(/\.\s/g, '.<break time="1.0s"/> ')
+    .replace(/\n/g, '<break time="1.2s"/>')
 }
 
 function serveIndex(res) {
@@ -232,8 +232,9 @@ async function handleChatVoice(req, res) {
       text: `<speak>${processedReply}</speak>`,
       model_id: "eleven_multilingual_v2",
       voice_settings: {
-        stability: 0.4,
-        similarity_boost: 0.8
+        stability: 0.55,
+        similarity_boost: 0.8,
+        speed: 0.82
       }
     })
   })
