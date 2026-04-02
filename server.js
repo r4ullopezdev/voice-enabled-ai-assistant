@@ -51,12 +51,88 @@ function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
-    .replace(/Repeat after me:/gi, "Repeat after me...\n")
-    .replace(/"([^"]+)"/g, '"$1"\n\n\n\n\n')
     .replace(/Now tap/gi, "\nNow tap")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
     .replace(/\n{6,}/g, "\n\n\n\n\n")
+}
+
+function getVoiceSettings() {
+  return {
+    stability: 0.68,
+    similarity_boost: 0.75,
+    use_speaker_boost: true,
+    speed: 0.92
+  }
+}
+
+async function synthesizeSpeech(text) {
+  const ttsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + VOICE_ID, {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVEN_API,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      text,
+      model_id: "eleven_multilingual_v2",
+      voice_settings: getVoiceSettings()
+    })
+  })
+
+  if (!ttsResponse.ok) {
+    const errorText = await ttsResponse.text()
+    throw new Error(errorText || "ElevenLabs request failed")
+  }
+
+  const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer())
+
+  return {
+    audioMimeType: ttsResponse.headers.get("content-type") || "audio/mpeg",
+    audioBase64: audioBuffer.toString("base64")
+  }
+}
+
+function buildSpeechPlan(reply) {
+  const repeatMatch = reply.match(/repeat after me:\s*(?:"([^"]+)"|“([^”]+)”|([^\n.!?]+))([\s\S]*)/i)
+
+  if (!repeatMatch) {
+    return [{ text: addPauses(reply), pauseAfterMs: 0 }]
+  }
+
+  const markerIndex = repeatMatch.index || 0
+  const beforeText = reply.slice(0, markerIndex).trim()
+  const repeatPhrase = (repeatMatch[1] || repeatMatch[2] || repeatMatch[3] || "").trim()
+  const afterText = (repeatMatch[4] || "").trim()
+  const segments = []
+
+  if (beforeText) {
+    segments.push({
+      text: addPauses(beforeText + "\nRepeat after me."),
+      pauseAfterMs: 700
+    })
+  } else {
+    segments.push({
+      text: "Repeat after me.",
+      pauseAfterMs: 700
+    })
+  }
+
+  if (repeatPhrase) {
+    segments.push({
+      text: repeatPhrase,
+      pauseAfterMs: 4500
+    })
+  }
+
+  if (afterText) {
+    segments.push({
+      text: addPauses(afterText),
+      pauseAfterMs: 0
+    })
+  }
+
+  return segments.filter((segment) => segment.text)
 }
 
 function serveIndex(res) {
@@ -209,35 +285,23 @@ async function handleChatVoice(req, res) {
     return
   }
 
-  const processedReply = addPauses(reply)
+  const speechPlan = buildSpeechPlan(reply)
+  const audioSegments = []
 
-  const ttsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + VOICE_ID, {
-    method: "POST",
-    headers: {
-      "xi-api-key": ELEVEN_API,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      text: processedReply,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: {
-        stability: 0.68,
-        similarity_boost: 0.75,
-        use_speaker_boost: true,
-        speed: 0.92
-      }
-    })
-  })
-
-  if (!ttsResponse.ok) {
-    const errorText = await ttsResponse.text()
-    sendJson(res, ttsResponse.status, {
-      error: errorText || "ElevenLabs request failed"
-    })
+  try {
+    for (const segment of speechPlan) {
+      const synthesized = await synthesizeSpeech(segment.text)
+      audioSegments.push({
+        audioMimeType: synthesized.audioMimeType,
+        audioBase64: synthesized.audioBase64,
+        pauseAfterMs: segment.pauseAfterMs || 0
+      })
+    }
+  } catch (error) {
+    sendJson(res, 502, { error: error.message || "ElevenLabs request failed" })
     return
   }
 
-  const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer())
   sendJson(res, 200, {
     reply,
     conversationId:
@@ -245,8 +309,9 @@ async function handleChatVoice(req, res) {
       (chatData && chatData.data && chatData.data.conversationId) ||
       conversationId ||
       null,
-    audioMimeType: ttsResponse.headers.get("content-type") || "audio/mpeg",
-    audioBase64: audioBuffer.toString("base64")
+    audioMimeType: audioSegments[0] ? audioSegments[0].audioMimeType : "audio/mpeg",
+    audioBase64: audioSegments[0] ? audioSegments[0].audioBase64 : null,
+    audioSegments
   })
 }
 

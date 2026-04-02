@@ -229,6 +229,7 @@
     let recognition = null
     let recognitionTranscript = ""
     let recognitionStopping = false
+    let playbackToken = 0
 
     const statusEl = document.getElementById("status")
     const sessionIndicatorEl = document.getElementById("sessionIndicator")
@@ -318,6 +319,62 @@
       return data
     }
 
+    function wait(ms) {
+      return new Promise((resolve) => {
+        window.setTimeout(resolve, ms)
+      })
+    }
+
+    async function playAudioSegments(segments, token) {
+      for (const segment of segments) {
+        if (token !== playbackToken) {
+          return
+        }
+
+        if (!segment.audioBase64) {
+          continue
+        }
+
+        audioEl.src = "data:" + (segment.audioMimeType || "audio/mpeg") + ";base64," + segment.audioBase64
+
+        await new Promise((resolve) => {
+          const handleEnded = () => {
+            audioEl.onended = null
+            resolve()
+          }
+
+          audioEl.onended = handleEnded
+          audioEl.play().catch(() => {
+            audioEl.onended = null
+            resolve()
+          })
+        })
+
+        if (segment.pauseAfterMs) {
+          await wait(segment.pauseAfterMs)
+        }
+      }
+    }
+
+    function playAudioResponse(data) {
+      playbackToken += 1
+      const token = playbackToken
+
+      if (Array.isArray(data.audioSegments) && data.audioSegments.length > 0) {
+        playAudioSegments(data.audioSegments, token).catch((error) => {
+          console.error(error)
+        })
+        return
+      }
+
+      if (data.audioBase64) {
+        audioEl.src = "data:" + (data.audioMimeType || "audio/mpeg") + ";base64," + data.audioBase64
+        audioEl.play().catch(() => {
+          console.log("Autoplay blocked by browser")
+        })
+      }
+    }
+
     async function send(force = false) {
       const text = msgEl.value.trim()
 
@@ -363,12 +420,7 @@
         conversationHistory = [...outgoingMessages, { role: "assistant", content: reply }].slice(-12)
         saveConversationHistory()
 
-        if (data.audioBase64) {
-          audioEl.src = "data:" + (data.audioMimeType || "audio/mpeg") + ";base64," + data.audioBase64
-          audioEl.play().catch(() => {
-            console.log("Autoplay blocked by browser")
-          })
-        }
+        playAudioResponse(data)
 
         setStatus("Done.")
       } catch (error) {
