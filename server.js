@@ -47,11 +47,19 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function cleanText(text) {
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/_/g, "")
+}
+
 function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
     .replace(/\.\.\./g, "...\n\n")
+    .replace(/,\s+/g, ",\n")
     .replace(/Now tap/gi, "\nNow tap")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
@@ -333,7 +341,8 @@ async function handleChatVoice(req, res) {
     return
   }
 
-  const speechPlan = buildSpeechPlan(reply)
+  const cleanedReply = cleanText(reply)
+  const speechPlan = buildSpeechPlan(cleanedReply)
   const audioSegments = []
 
   try {
@@ -351,7 +360,7 @@ async function handleChatVoice(req, res) {
   }
 
   sendJson(res, 200, {
-    reply,
+    reply: cleanedReply,
     conversationId:
       (chatData && chatData.conversationId) ||
       (chatData && chatData.data && chatData.data.conversationId) ||

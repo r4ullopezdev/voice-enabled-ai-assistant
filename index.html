@@ -414,7 +414,7 @@
       }
 
       setBusy(true)
-      setStatus("Sending message...")
+      setStatus("Coach is responding...")
 
       try {
         const outgoingMessages = buildOutgoingMessages(text)
@@ -438,6 +438,7 @@
 
         const reply = data.reply || ""
         replyBoxEl.textContent = reply
+        replyBoxEl.scrollIntoView({ behavior: "smooth", block: "end" })
 
         if (!reply) {
           throw new Error("The AI returned an empty reply")
@@ -448,7 +449,7 @@
 
         playAudioResponse(data)
 
-        setStatus("Done.")
+        setStatus("Ready.")
       } catch (error) {
         console.error(error)
         setStatus("Error: " + error.message)
