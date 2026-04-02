@@ -118,7 +118,7 @@ function buildSpeechPlan(reply) {
     if (repeatPhrase) {
       segments.push({
         text: repeatPhrase,
-        pauseAfterMs: 4500
+        pauseAfterMs: 3500
       })
     }
 
