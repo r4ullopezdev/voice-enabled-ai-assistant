@@ -47,6 +47,22 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function escapeXml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+}
+
+function addPauses(text) {
+  return escapeXml(text)
+    .replace(/\.\.\./g, '<break time="1.5s"/>')
+    .replace(/\n+/g, '<break time="1.2s"/>')
+    .replace(/\./g, '.<break time="0.8s"/>')
+}
+
 function serveIndex(res) {
   const filePath = path.join(__dirname, "index.html")
   fs.readFile(filePath, (error, content) => {
@@ -197,6 +213,8 @@ async function handleChatVoice(req, res) {
     return
   }
 
+  const processedReply = addPauses(reply)
+
   const ttsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + VOICE_ID, {
     method: "POST",
     headers: {
@@ -204,8 +222,12 @@ async function handleChatVoice(req, res) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      text: reply,
-      model_id: "eleven_multilingual_v2"
+      text: `<speak>${processedReply}</speak>`,
+      model_id: "eleven_multilingual_v2",
+      voice_settings: {
+        stability: 0.4,
+        similarity_boost: 0.8
+      }
     })
   })
 
