@@ -202,6 +202,7 @@
     let mediaStream = null
     let audioChunks = []
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
+    let conversationHistory = loadConversationHistory()
     let recognition = null
     let recognitionTranscript = ""
     let recognitionStopping = false
@@ -223,6 +224,29 @@
     function setBusy(value) {
       isBusy = value
       updateControls()
+    }
+
+    function loadConversationHistory() {
+      try {
+        const stored = localStorage.getItem("tdt_conversation_history")
+        const parsed = stored ? JSON.parse(stored) : []
+
+        return Array.isArray(parsed)
+          ? parsed.filter((item) => item && typeof item.role === "string" && typeof item.content === "string")
+          : []
+      } catch {
+        return []
+      }
+    }
+
+    function saveConversationHistory() {
+      localStorage.setItem("tdt_conversation_history", JSON.stringify(conversationHistory))
+    }
+
+    function buildOutgoingMessages(userMessage) {
+      const historyWindow = conversationHistory.slice(-10)
+
+      return [...historyWindow, { role: "user", content: userMessage }]
     }
 
     function updateControls() {
@@ -279,6 +303,7 @@
       setStatus("Sending message...")
 
       try {
+        const outgoingMessages = buildOutgoingMessages(text)
         const data = await requestJson("/api/chat-voice", {
           method: "POST",
           headers: {
@@ -286,7 +311,8 @@
           },
           body: JSON.stringify({
             message: text,
-            conversationId: conversationId
+            conversationId: conversationId,
+            messages: outgoingMessages
           })
         })
 
@@ -301,6 +327,9 @@
         if (!reply) {
           throw new Error("The AI returned an empty reply")
         }
+
+        conversationHistory = [...outgoingMessages, { role: "assistant", content: reply }].slice(-12)
+        saveConversationHistory()
 
         if (data.audioBase64) {
           audioEl.src = "data:" + (data.audioMimeType || "audio/mpeg") + ";base64," + data.audioBase64
@@ -479,7 +508,9 @@
 
     function resetConversation() {
       conversationId = null
+      conversationHistory = []
       localStorage.removeItem("tdt_conversation_id")
+      localStorage.removeItem("tdt_conversation_history")
       replyBoxEl.textContent = ""
       msgEl.value = ""
       setStatus("New session started.")

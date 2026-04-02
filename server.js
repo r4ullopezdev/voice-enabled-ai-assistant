@@ -135,20 +135,33 @@ async function handleChatVoice(req, res) {
     payload && typeof payload.conversationId === "string" && payload.conversationId.trim()
       ? payload.conversationId.trim()
       : undefined
+  const incomingMessages = Array.isArray(payload && payload.messages)
+    ? payload.messages
+        .filter((item) => item && typeof item.role === "string" && typeof item.content === "string")
+        .map((item) => ({
+          role: item.role,
+          content: item.content.trim()
+        }))
+        .filter((item) => item.content)
+    : null
 
   if (!message) {
     sendJson(res, 400, { error: "Message is required" })
     return
   }
 
+  const messages = incomingMessages && incomingMessages.length
+    ? incomingMessages
+    : [
+        {
+          role: "user",
+          content: message
+        }
+      ]
+
   const chatPayload = {
     chatbotId: CHATBOT_ID,
-    messages: [
-      {
-        role: "user",
-        content: message
-      }
-    ],
+    messages,
     stream: false
   }
 
