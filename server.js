@@ -97,15 +97,44 @@ async function synthesizeSpeech(text) {
 function buildSpeechPlan(reply) {
   const segments = []
   const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|“([^”]+)”|([^\n]+))/gi
-  let lastIndex = 0
+  const breatheRegex = /\b(?:breath|breathe)\s+in(?:\s*\.\.\.|\s*[.!?])?/gi
+  const cues = []
   let match
 
   while ((match = repeatRegex.exec(reply)) !== null) {
-    const beforeText = reply.slice(lastIndex, match.index).trim()
-    const repeatPhrase = (match[1] || match[2] || match[3] || "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/[.!?]+$/, "")
+    cues.push({
+      type: "repeat",
+      index: match.index,
+      end: repeatRegex.lastIndex,
+      phrase: (match[1] || match[2] || match[3] || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .replace(/[.!?]+$/, "")
+    })
+  }
+
+  while ((match = breatheRegex.exec(reply)) !== null) {
+    cues.push({
+      type: "breathe",
+      index: match.index,
+      end: breatheRegex.lastIndex,
+      phrase: match[0]
+        .trim()
+        .replace(/\s+/g, " ")
+        .replace(/[.!?]+$/, "")
+    })
+  }
+
+  cues.sort((a, b) => a.index - b.index)
+
+  let cursor = 0
+
+  for (const cue of cues) {
+    if (cue.index < cursor) {
+      continue
+    }
+
+    const beforeText = reply.slice(cursor, cue.index).trim()
 
     if (beforeText) {
       segments.push({
@@ -114,22 +143,31 @@ function buildSpeechPlan(reply) {
       })
     }
 
-    segments.push({
-      text: "Repeat after me.",
-      pauseAfterMs: 700
-    })
-
-    if (repeatPhrase) {
+    if (cue.type === "repeat") {
       segments.push({
-        text: repeatPhrase,
-        pauseAfterMs: 3500
+        text: "Repeat after me.",
+        pauseAfterMs: 700
+      })
+
+      if (cue.phrase) {
+        segments.push({
+          text: cue.phrase,
+          pauseAfterMs: 3500
+        })
+      }
+    }
+
+    if (cue.type === "breathe") {
+      segments.push({
+        text: cue.phrase || "Breathe in.",
+        pauseAfterMs: 2500
       })
     }
 
-    lastIndex = repeatRegex.lastIndex
+    cursor = cue.end
   }
 
-  const trailingText = reply.slice(lastIndex).trim()
+  const trailingText = reply.slice(cursor).trim()
 
   if (trailingText) {
     segments.push({
