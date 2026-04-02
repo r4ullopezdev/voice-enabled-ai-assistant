@@ -95,13 +95,16 @@ async function synthesizeSpeech(text) {
 
 function buildSpeechPlan(reply) {
   const segments = []
-  const repeatRegex = /repeat after me:\s*(?:"([^"]+)"|“([^”]+)”|([^\n.!?]+))/gi
+  const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|“([^”]+)”|([^\n]+))/gi
   let lastIndex = 0
   let match
 
   while ((match = repeatRegex.exec(reply)) !== null) {
     const beforeText = reply.slice(lastIndex, match.index).trim()
-    const repeatPhrase = (match[1] || match[2] || match[3] || "").trim()
+    const repeatPhrase = (match[1] || match[2] || match[3] || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/[.!?]+$/, "")
 
     if (beforeText) {
       segments.push({
