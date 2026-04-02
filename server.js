@@ -60,12 +60,10 @@ function addPauses(text) {
   return escapeXml(text)
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
-    .replace(/Repeat after me:/gi, 'Repeat after me:<break time="1.5s"/>')
-    .replace(/&quot;([^&]+)&quot;/g, '&quot;$1&quot;<break time="2s"/>')
-    .replace(/Now tap/gi, '<break time="1s"/>Now tap')
-    .replace(/Good\./g, 'Good.<break time="1s"/>')
-    .replace(/\n/g, '<break time="1.2s"/>')
-    .replace(/\./g, '.<break time="0.6s"/>')
+    .replace(/Repeat after me:/gi, 'Repeat after me:<break time="1.2s"/>')
+    .replace(/Now tap/gi, '<break time="0.8s"/>Now tap')
+    .replace(/\n/g, '<break time="1.0s"/>')
+    .replace(/([.!?])\s+/g, '$1<break time="0.8s"/> ')
 }
 
 function serveIndex(res) {
@@ -230,9 +228,10 @@ async function handleChatVoice(req, res) {
       text: `<speak>${processedReply}</speak>`,
       model_id: "eleven_multilingual_v2",
       voice_settings: {
-        stability: 0.55,
-        similarity_boost: 0.8,
-        speed: 0.82
+        stability: 0.68,
+        similarity_boost: 0.75,
+        use_speaker_boost: true,
+        speed: 0.92
       }
     })
   })
