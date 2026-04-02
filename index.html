@@ -128,6 +128,7 @@
       border-radius: 18px;
       padding: 18px 20px;
       background: rgba(255, 255, 255, 0.56);
+      line-height: 1.6;
     }
 
     .card h3 {
@@ -185,15 +186,41 @@
 </head>
 <body>
   <main class="app">
-    <h1>TDT AI Voice Test</h1>
-    <p class="subtitle">Send a message, get the coach response in text, and generate voice playback in the same flow.</p>
+    <h1>TDT AI Performance Coach</h1>
+    <p class="subtitle">
+      Real-time mental coaching for traders.
+      Reset your state, regain discipline, and stay aligned with your trading plan.
+    </p>
+
+    <div class="card">
+      <h3>How to use</h3>
+      <p>
+        • You can type or use the microphone to interact with the coach.<br><br>
+        • For the best voice experience, use the full voice version.<br><br>
+        • Follow the instructions step by step and repeat the phrases out loud when prompted.<br><br>
+        • Stay present — this is designed to guide you in real time.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>What this is</h3>
+      <p>
+        This is not a chatbot.
+        This is a real-time performance coach designed to help you manage emotions,
+        avoid impulsive decisions, and execute your trading plan with discipline.
+      </p>
+    </div>
 
     <div class="composer">
-      <input id="msg" placeholder="Type message" />
+      <input id="msg" placeholder="Describe what you're feeling or thinking right now..." />
       <button id="sendBtn" onclick="send()">Send</button>
       <button id="micBtn" class="mic-btn" onclick="toggleMic()">Speak</button>
       <button id="resetBtn" onclick="resetConversation()">New Session</button>
     </div>
+
+    <p class="subtitle" style="margin: 12px 0 0; font-size: 12px; max-width: none;">
+      Tip: Speak your responses out loud and follow the pacing of the coach.
+    </p>
 
     <section class="stack">
       <div class="card">
