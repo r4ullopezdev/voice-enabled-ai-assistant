@@ -131,10 +131,29 @@ async function handleChatVoice(req, res) {
   }
 
   const message = payload && typeof payload.message === "string" ? payload.message.trim() : ""
+  const conversationId =
+    payload && typeof payload.conversationId === "string" && payload.conversationId.trim()
+      ? payload.conversationId.trim()
+      : undefined
 
   if (!message) {
     sendJson(res, 400, { error: "Message is required" })
     return
+  }
+
+  const chatPayload = {
+    chatbotId: CHATBOT_ID,
+    messages: [
+      {
+        role: "user",
+        content: message
+      }
+    ],
+    stream: false
+  }
+
+  if (conversationId) {
+    chatPayload.conversationId = conversationId
   }
 
   const chatResponse = await fetch("https://www.chatbase.co/api/v1/chat", {
@@ -143,16 +162,7 @@ async function handleChatVoice(req, res) {
       Authorization: "Bearer " + CHATBASE_API,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      chatbotId: CHATBOT_ID,
-      messages: [
-        {
-          role: "user",
-          content: message
-        }
-      ],
-      stream: false
-    })
+    body: JSON.stringify(chatPayload)
   })
 
   const chatData = await chatResponse.json().catch(() => null)
@@ -197,6 +207,11 @@ async function handleChatVoice(req, res) {
   const audioBuffer = Buffer.from(await ttsResponse.arrayBuffer())
   sendJson(res, 200, {
     reply,
+    conversationId:
+      (chatData && chatData.conversationId) ||
+      (chatData && chatData.data && chatData.data.conversationId) ||
+      conversationId ||
+      null,
     audioMimeType: ttsResponse.headers.get("content-type") || "audio/mpeg",
     audioBase64: audioBuffer.toString("base64")
   })
