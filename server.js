@@ -47,23 +47,15 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
-function escapeXml(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-}
-
 function addPauses(text) {
-  return escapeXml(text)
+  return text
     .replace(/\r\n/g, "\n")
     .replace(/\n{2,}/g, "\n")
-    .replace(/Repeat after me:/gi, 'Repeat after me:<break time="1.2s"/>')
-    .replace(/Now tap/gi, '<break time="0.8s"/>Now tap')
-    .replace(/\n/g, '<break time="1.0s"/>')
-    .replace(/([.!?])\s+/g, '$1<break time="0.8s"/> ')
+    .replace(/Repeat after me:/gi, "Repeat after me...\n")
+    .replace(/Now tap/gi, "\nNow tap")
+    .replace(/Good\./g, "Good...\n")
+    .replace(/([.!?])\s+/g, "$1\n")
+    .replace(/\n{3,}/g, "\n\n")
 }
 
 function serveIndex(res) {
@@ -225,7 +217,7 @@ async function handleChatVoice(req, res) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      text: `<speak>${processedReply}</speak>`,
+      text: processedReply,
       model_id: "eleven_multilingual_v2",
       voice_settings: {
         stability: 0.68,
