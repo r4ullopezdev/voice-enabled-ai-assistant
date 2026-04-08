@@ -61,6 +61,8 @@ function addPauses(text) {
     .replace(/\.\.\./g, "...\n\n")
     .replace(/,\s+/g, ",\n")
     .replace(/Now tap/gi, "\nNow tap")
+    .replace(/Take one slow breath in\./gi, "Take one slow breath in.\n\n")
+    .replace(/And out\./gi, "And out.\n\n")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
     .replace(/\n{6,}/g, "\n\n\n\n\n")
@@ -68,10 +70,11 @@ function addPauses(text) {
 
 function getVoiceSettings() {
   return {
-    stability: 0.68,
-    similarity_boost: 0.75,
+    stability: 0.5,
+    similarity_boost: 0.8,
+    style: 0.2,
     use_speaker_boost: true,
-    speed: 0.92
+    speed: 0.88
   }
 }
 
@@ -106,6 +109,9 @@ function buildSpeechPlan(reply) {
   const segments = []
   const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|([^\n]+))/gi
   const breatheRegex = /\b(?:breath|breathe)\s+in(?:\s*\.\.\.|\s*[.!?])?/gi
+  const quoteRegex = /"([^"]+)"|\u201C([^\u201D]+)\u201D/g
+  const slowBreathInRegex = /take one slow breath in\./gi
+  const andOutRegex = /and out\./gi
   const cues = []
   let match
 
@@ -130,6 +136,39 @@ function buildSpeechPlan(reply) {
         .trim()
         .replace(/\s+/g, " ")
         .replace(/[.!?]+$/, "")
+    })
+  }
+
+  while ((match = slowBreathInRegex.exec(reply)) !== null) {
+    cues.push({
+      type: "slow-breath-in",
+      index: match.index,
+      end: slowBreathInRegex.lastIndex,
+      phrase: "Take one slow breath in."
+    })
+  }
+
+  while ((match = andOutRegex.exec(reply)) !== null) {
+    cues.push({
+      type: "and-out",
+      index: match.index,
+      end: andOutRegex.lastIndex,
+      phrase: "And out."
+    })
+  }
+
+  while ((match = quoteRegex.exec(reply)) !== null) {
+    const phrase = (match[1] || match[2] || "").trim()
+
+    if (!phrase) {
+      continue
+    }
+
+    cues.push({
+      type: "quote",
+      index: match.index,
+      end: quoteRegex.lastIndex,
+      phrase: phrase.replace(/\s+/g, " ").replace(/[.!?]+$/, "")
     })
   }
 
@@ -169,6 +208,27 @@ function buildSpeechPlan(reply) {
       segments.push({
         text: cue.phrase || "Breathe in.",
         pauseAfterMs: 2500
+      })
+    }
+
+    if (cue.type === "slow-breath-in") {
+      segments.push({
+        text: cue.phrase,
+        pauseAfterMs: 2000
+      })
+    }
+
+    if (cue.type === "and-out") {
+      segments.push({
+        text: cue.phrase,
+        pauseAfterMs: 2000
+      })
+    }
+
+    if (cue.type === "quote") {
+      segments.push({
+        text: cue.phrase,
+        pauseAfterMs: 3000
       })
     }
 
