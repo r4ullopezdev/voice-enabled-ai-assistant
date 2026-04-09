@@ -54,6 +54,14 @@ function cleanText(text) {
     .replace(/_/g, "")
 }
 
+function normalizeTtsText(text) {
+  return text
+    .replace(/\bAnd OUT\./g, "And out.")
+    .replace(/\bAND OUT\./g, "And out.")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
@@ -72,9 +80,9 @@ function getVoiceSettings() {
   return {
     stability: 0.5,
     similarity_boost: 0.8,
-    style: 0.2,
+    style: 0.15,
     use_speaker_boost: true,
-    speed: 0.88
+    speed: 0.82
   }
 }
 
@@ -106,146 +114,101 @@ async function synthesizeSpeech(text) {
 }
 
 function buildSpeechPlan(reply) {
+  const eftPointRegex = /^(Karate Chop|Eyebrow|Side of the Eye|Under the Eye|Under the Nose|Chin|Collarbone|Under the Arm|Top of the Head)\b/i
+  const repeatRegex = /^repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|(.+))?$/i
+  const quoteOnlyRegex = /^(?:"([^"]+)"|\u201C([^\u201D]+)\u201D)$/
+  const breatheInRegex = /^(?:take one slow )?(?:breath|breathe)\s+in(?:\.\.\.|[.!?])?$/i
+  const andOutRegex = /^and out[.!?]?$/i
+  const meditationCueRegex = /^(notice|allow|feel|let|imagine|stay|bring|soften|release|breathe|inhale|exhale|listen|rest|settle|become aware|take one slow breath in|and out)\b/i
   const segments = []
-  const repeatRegex = /repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|([^\n]+))/gi
-  const breatheRegex = /\b(?:breath|breathe)\s+in(?:\s*\.\.\.|\s*[.!?])?/gi
-  const quoteRegex = /"([^"]+)"|\u201C([^\u201D]+)\u201D/g
-  const slowBreathInRegex = /take one slow breath in\./gi
-  const andOutRegex = /and out\./gi
-  const cues = []
-  let match
 
-  while ((match = repeatRegex.exec(reply)) !== null) {
-    cues.push({
-      type: "repeat",
-      index: match.index,
-      end: repeatRegex.lastIndex,
-      phrase: (match[1] || match[2] || match[3] || "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .replace(/[.!?]+$/, "")
-    })
-  }
+  const rawUnits = reply
+    .replace(/\r\n/g, "\n")
+    .split(/\n+/)
+    .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+    .map((unit) => unit.trim())
+    .filter(Boolean)
 
-  while ((match = breatheRegex.exec(reply)) !== null) {
-    cues.push({
-      type: "breathe",
-      index: match.index,
-      end: breatheRegex.lastIndex,
-      phrase: match[0]
-        .trim()
-        .replace(/\s+/g, " ")
-        .replace(/[.!?]+$/, "")
-    })
-  }
+  for (let index = 0; index < rawUnits.length; index += 1) {
+    const rawUnit = rawUnits[index]
+    const unit = normalizeTtsText(rawUnit)
 
-  while ((match = slowBreathInRegex.exec(reply)) !== null) {
-    cues.push({
-      type: "slow-breath-in",
-      index: match.index,
-      end: slowBreathInRegex.lastIndex,
-      phrase: "Take one slow breath in."
-    })
-  }
-
-  while ((match = andOutRegex.exec(reply)) !== null) {
-    cues.push({
-      type: "and-out",
-      index: match.index,
-      end: andOutRegex.lastIndex,
-      phrase: "And out."
-    })
-  }
-
-  while ((match = quoteRegex.exec(reply)) !== null) {
-    const phrase = (match[1] || match[2] || "").trim()
-
-    if (!phrase) {
+    if (!unit) {
       continue
     }
 
-    cues.push({
-      type: "quote",
-      index: match.index,
-      end: quoteRegex.lastIndex,
-      phrase: phrase.replace(/\s+/g, " ").replace(/[.!?]+$/, "")
-    })
-  }
+    const repeatMatch = unit.match(repeatRegex)
+    const quoteOnlyMatch = unit.match(quoteOnlyRegex)
+    const nextUnit = rawUnits[index + 1] ? normalizeTtsText(rawUnits[index + 1]) : ""
 
-  cues.sort((a, b) => a.index - b.index)
+    if (repeatMatch) {
+      const repeatPhrase = normalizeTtsText((repeatMatch[1] || repeatMatch[2] || repeatMatch[3] || "").replace(/[.!?]+$/, ""))
 
-  let cursor = 0
-
-  for (const cue of cues) {
-    if (cue.index < cursor) {
-      continue
-    }
-
-    const beforeText = reply.slice(cursor, cue.index).trim()
-
-    if (beforeText) {
-      segments.push({
-        text: addPauses(beforeText),
-        pauseAfterMs: 0
-      })
-    }
-
-    if (cue.type === "repeat") {
       segments.push({
         text: "Repeat after me.",
         pauseAfterMs: 700
       })
 
-      if (cue.phrase) {
+      if (repeatPhrase) {
         segments.push({
-          text: cue.phrase,
-          pauseAfterMs: 3500
+          text: repeatPhrase,
+          pauseAfterMs: 3000
         })
+      } else if (nextUnit) {
+        segments.push({
+          text: nextUnit.replace(/[.!?]+$/, ""),
+          pauseAfterMs: 3000
+        })
+        index += 1
       }
+
+      continue
     }
 
-    if (cue.type === "breathe") {
+    if (quoteOnlyMatch) {
       segments.push({
-        text: cue.phrase || "Breathe in.",
-        pauseAfterMs: 2500
-      })
-    }
-
-    if (cue.type === "slow-breath-in") {
-      segments.push({
-        text: cue.phrase,
-        pauseAfterMs: 2000
-      })
-    }
-
-    if (cue.type === "and-out") {
-      segments.push({
-        text: cue.phrase,
-        pauseAfterMs: 2000
-      })
-    }
-
-    if (cue.type === "quote") {
-      segments.push({
-        text: cue.phrase,
+        text: normalizeTtsText((quoteOnlyMatch[1] || quoteOnlyMatch[2] || "").replace(/[.!?]+$/, "")),
         pauseAfterMs: 3000
       })
+      continue
     }
 
-    cursor = cue.end
-  }
+    if (eftPointRegex.test(unit)) {
+      segments.push({
+        text: unit,
+        pauseAfterMs: 3000
+      })
+      continue
+    }
 
-  const trailingText = reply.slice(cursor).trim()
+    if (breatheInRegex.test(unit)) {
+      segments.push({
+        text: unit.replace(/[.!?]+$/, "."),
+        pauseAfterMs: 2500
+      })
+      continue
+    }
 
-  if (trailingText) {
+    if (andOutRegex.test(unit)) {
+      segments.push({
+        text: "And out.",
+        pauseAfterMs: 2000
+      })
+      continue
+    }
+
+    if (meditationCueRegex.test(unit)) {
+      segments.push({
+        text: addPauses(unit),
+        pauseAfterMs: 3000
+      })
+      continue
+    }
+
     segments.push({
-      text: addPauses(trailingText),
-      pauseAfterMs: 0
+      text: addPauses(unit),
+      pauseAfterMs: 1200
     })
-  }
-
-  if (segments.length === 0) {
-    return [{ text: addPauses(reply), pauseAfterMs: 0 }]
   }
 
   return segments.filter((segment) => segment.text)
