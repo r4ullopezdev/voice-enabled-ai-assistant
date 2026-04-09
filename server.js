@@ -10,6 +10,10 @@ const CHATBASE_API = process.env.CHATBASE_API
 const CHATBOT_ID = process.env.CHATBOT_ID
 const ELEVEN_API = process.env.ELEVEN_API
 const VOICE_ID = process.env.VOICE_ID
+const AUDIO_DIR = path.join(__dirname, "audios")
+const MEDITATION_INTRO_FILES = ["audio1.m4a", "audio2.m4a"]
+const MEDITATION_OUTRO_FILES = ["audio3.m4a", "audio4.m4a"]
+const localAudioCache = new Map()
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, ".env")
@@ -47,6 +51,44 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function hashString(text) {
+  let hash = 0
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) >>> 0
+  }
+
+  return hash
+}
+
+function getMimeTypeFromFile(fileName) {
+  if (fileName.endsWith(".m4a")) {
+    return "audio/mp4"
+  }
+
+  return "audio/mpeg"
+}
+
+function loadLocalAudioSegment(fileName, pauseAfterMs = 0) {
+  if (!localAudioCache.has(fileName)) {
+    const filePath = path.join(AUDIO_DIR, fileName)
+    const buffer = fs.readFileSync(filePath)
+
+    localAudioCache.set(fileName, {
+      audioMimeType: getMimeTypeFromFile(fileName),
+      audioBase64: buffer.toString("base64")
+    })
+  }
+
+  const cached = localAudioCache.get(fileName)
+
+  return {
+    audioMimeType: cached.audioMimeType,
+    audioBase64: cached.audioBase64,
+    pauseAfterMs
+  }
+}
+
 function cleanText(text) {
   return text
     .replace(/\*\*/g, "")
@@ -60,6 +102,36 @@ function normalizeTtsText(text) {
     .replace(/\bAND OUT\./g, "And out.")
     .replace(/\s+/g, " ")
     .trim()
+}
+
+function isMeditationResponse(text) {
+  const meditationSignals = [
+    /take one slow breath in/i,
+    /and out\./i,
+    /\bnotice\b/i,
+    /\ballow\b/i,
+    /\bfeel\b/i,
+    /\bimagine\b/i,
+    /\bsettle\b/i,
+    /\bbecome aware\b/i
+  ]
+
+  return meditationSignals.filter((pattern) => pattern.test(text)).length >= 2
+}
+
+function stripMeditationIntro(text) {
+  return text
+    .replace(/^\s*take one slow breath in\.\s*and out\.\s*/i, "")
+    .replace(/^\s*take one slow deep breath in\.\s*and out\.\s*/i, "")
+    .trim()
+}
+
+function getMeditationVariantIndex(seed) {
+  if (!seed) {
+    return 0
+  }
+
+  return hashString(seed) % Math.min(MEDITATION_INTRO_FILES.length, MEDITATION_OUTRO_FILES.length)
 }
 
 function addPauses(text) {
@@ -365,10 +437,18 @@ async function handleChatVoice(req, res) {
   }
 
   const cleanedReply = cleanText(reply)
-  const speechPlan = buildSpeechPlan(cleanedReply)
+  const meditationMode = isMeditationResponse(cleanedReply)
+  const narrationReply = meditationMode ? stripMeditationIntro(cleanedReply) : cleanedReply
+  const speechPlan = buildSpeechPlan(narrationReply)
   const audioSegments = []
 
   try {
+    if (meditationMode) {
+      const variantIndex = getMeditationVariantIndex(conversationId || message || cleanedReply)
+
+      audioSegments.push(loadLocalAudioSegment(MEDITATION_INTRO_FILES[variantIndex], 1200))
+    }
+
     for (const segment of speechPlan) {
       const synthesized = await synthesizeSpeech(segment.text)
       audioSegments.push({
@@ -377,13 +457,19 @@ async function handleChatVoice(req, res) {
         pauseAfterMs: segment.pauseAfterMs || 0
       })
     }
+
+    if (meditationMode) {
+      const variantIndex = getMeditationVariantIndex(conversationId || message || cleanedReply)
+
+      audioSegments.push(loadLocalAudioSegment(MEDITATION_OUTRO_FILES[variantIndex], 0))
+    }
   } catch (error) {
     sendJson(res, 502, { error: error.message || "ElevenLabs request failed" })
     return
   }
 
   sendJson(res, 200, {
-    reply: cleanedReply,
+    reply: narrationReply,
     conversationId:
       (chatData && chatData.conversationId) ||
       (chatData && chatData.data && chatData.data.conversationId) ||
