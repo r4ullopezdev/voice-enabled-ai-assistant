@@ -73,7 +73,8 @@ function removePromptEcho(reply, userMessage) {
 
 function normalizeTtsText(text) {
   return text
-    .replace(/\bAnd\s+OUT\b[.!?]?/gi, "And out...")
+    .replace(/\bAnd\s+OUT\b[.!?]?/gi, "softly breathe out...")
+    .replace(/\bAnd\s+out\b[.!?]?/g, "softly breathe out...")
     .replace(/\bNOW\b/g, "Now")
     .replace(/\bSTOP\b/g, "Stop")
     .replace(/\bRESET\b/g, "Reset")
@@ -108,7 +109,7 @@ function addPauses(text) {
     .replace(/,\s+/g, ",\n")
     .replace(/Now tap/gi, "\nNow tap")
     .replace(/Take one slow breath in\./gi, "Take one slow breath in.\n\n")
-    .replace(/And out\./gi, "And out.\n\n")
+    .replace(/And out\./gi, "softly breathe out...\n\n")
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
     .replace(/\n{6,}/g, "\n\n\n\n\n")
@@ -176,7 +177,7 @@ function buildSpeechPlan(reply, options = {}) {
   const repeatRegex = /^repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|(.+))?$/i
   const quoteOnlyRegex = /^(?:"([^"]+)"|\u201C([^\u201D]+)\u201D)$/
   const breatheInRegex = /^(?:take one slow )?(?:breath|breathe)\s+in(?:\.\.\.|[.!?])?$/i
-  const andOutRegex = /^and out[.!?]?$/i
+  const andOutRegex = /^and out(?:\.\.\.|[.!?])?$/i
   const meditationCueRegex = /^(notice|allow|feel|let|imagine|stay|bring|soften|release|breathe|inhale|exhale|listen|rest|settle|become aware|take one slow breath in|and out)\b/i
   const segments = []
 
@@ -259,7 +260,7 @@ function buildSpeechPlan(reply, options = {}) {
 
     if (andOutRegex.test(unit)) {
       segments.push({
-        text: "And out...",
+        text: "softly breathe out...",
         pauseAfterMs: 3000
       })
       continue
