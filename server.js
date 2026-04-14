@@ -10,10 +10,6 @@ const CHATBASE_API = process.env.CHATBASE_API
 const CHATBOT_ID = process.env.CHATBOT_ID
 const ELEVEN_API = process.env.ELEVEN_API
 const VOICE_ID = process.env.VOICE_ID
-const AUDIO_DIR = path.join(__dirname, "audios")
-const MEDITATION_INTRO_FILES = ["audio1.m4a", "audio2.m4a"]
-const MEDITATION_OUTRO_FILES = ["audio3.m4a", "audio4.m4a"]
-const localAudioCache = new Map()
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, ".env")
@@ -51,55 +47,34 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload))
 }
 
-function hashString(text) {
-  let hash = 0
-
-  for (let index = 0; index < text.length; index += 1) {
-    hash = (hash * 31 + text.charCodeAt(index)) >>> 0
-  }
-
-  return hash
-}
-
-function getMimeTypeFromFile(fileName) {
-  if (fileName.endsWith(".m4a")) {
-    return "audio/mp4"
-  }
-
-  return "audio/mpeg"
-}
-
-function loadLocalAudioSegment(fileName, pauseAfterMs = 0) {
-  if (!localAudioCache.has(fileName)) {
-    const filePath = path.join(AUDIO_DIR, fileName)
-    const buffer = fs.readFileSync(filePath)
-
-    localAudioCache.set(fileName, {
-      audioMimeType: getMimeTypeFromFile(fileName),
-      audioBase64: buffer.toString("base64")
-    })
-  }
-
-  const cached = localAudioCache.get(fileName)
-
-  return {
-    audioMimeType: cached.audioMimeType,
-    audioBase64: cached.audioBase64,
-    pauseAfterMs
-  }
-}
-
 function cleanText(text) {
   return text
     .replace(/\*\*/g, "")
     .replace(/\*/g, "")
     .replace(/_/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+function removePromptEcho(reply, userMessage) {
+  if (!userMessage) {
+    return reply
+  }
+
+  const escapedPrompt = userMessage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+  return reply
+    .replace(new RegExp("\\n?\\s*(User|Prompt|Input)\\s*:\\s*" + escapedPrompt + "\\s*$", "i"), "")
+    .replace(new RegExp("\\n?\\s*" + escapedPrompt + "\\s*$", "i"), "")
+    .trim()
 }
 
 function normalizeTtsText(text) {
   return text
-    .replace(/\bAnd OUT\./g, "And out.")
-    .replace(/\bAND OUT\./g, "And out.")
+    .replace(/\bAnd\s+OUT\b[.!?]?/gi, "And out...")
+    .replace(/\.\.\./g, "...")
     .replace(/\s+/g, " ")
     .trim()
 }
@@ -119,21 +94,6 @@ function isMeditationResponse(text) {
   return meditationSignals.filter((pattern) => pattern.test(text)).length >= 2
 }
 
-function stripMeditationIntro(text) {
-  return text
-    .replace(/^\s*take one slow breath in\.\s*and out\.\s*/i, "")
-    .replace(/^\s*take one slow deep breath in\.\s*and out\.\s*/i, "")
-    .trim()
-}
-
-function getMeditationVariantIndex(seed) {
-  if (!seed) {
-    return 0
-  }
-
-  return hashString(seed) % Math.min(MEDITATION_INTRO_FILES.length, MEDITATION_OUTRO_FILES.length)
-}
-
 function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
@@ -146,6 +106,13 @@ function addPauses(text) {
     .replace(/Good\./g, "Good...\n")
     .replace(/([.!?])\s+/g, "$1\n")
     .replace(/\n{6,}/g, "\n\n\n\n\n")
+}
+
+function softenEnding(text) {
+  return normalizeTtsText(text)
+    .replace(/[.!?]+$/g, "")
+    .replace(/\s*\.\.\.$/g, "")
+    .trim() + "..."
 }
 
 function getVoiceSettings() {
@@ -185,8 +152,19 @@ async function synthesizeSpeech(text) {
   }
 }
 
-function buildSpeechPlan(reply) {
-  const eftPointRegex = /^(Karate Chop|Eyebrow|Side of the Eye|Under the Eye|Under the Nose|Chin|Collarbone|Under the Arm|Top of the Head)\b/i
+function buildSpeechPlan(reply, options = {}) {
+  const eftPointNames = [
+    "Karate Chop",
+    "Eyebrow",
+    "Side of the Eye",
+    "Under the Eye",
+    "Under the Nose",
+    "Chin",
+    "Collarbone",
+    "Under the Arm",
+    "Top of the Head"
+  ]
+  const eftPointRegex = new RegExp("^(" + eftPointNames.join("|") + ")(?:[.:-]?\\s*(.*))?$", "i")
   const repeatRegex = /^repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|(.+))?$/i
   const quoteOnlyRegex = /^(?:"([^"]+)"|\u201C([^\u201D]+)\u201D)$/
   const breatheInRegex = /^(?:take one slow )?(?:breath|breathe)\s+in(?:\.\.\.|[.!?])?$/i
@@ -211,6 +189,7 @@ function buildSpeechPlan(reply) {
 
     const repeatMatch = unit.match(repeatRegex)
     const quoteOnlyMatch = unit.match(quoteOnlyRegex)
+    const eftMatch = unit.match(eftPointRegex)
     const nextUnit = rawUnits[index + 1] ? normalizeTtsText(rawUnits[index + 1]) : ""
 
     if (repeatMatch) {
@@ -237,17 +216,26 @@ function buildSpeechPlan(reply) {
       continue
     }
 
-    if (quoteOnlyMatch) {
+    if (eftMatch) {
+      const point = eftMatch[1]
+      const inlinePhrase = normalizeTtsText(eftMatch[2] || "")
+      const phrase = inlinePhrase || nextUnit
+
       segments.push({
-        text: normalizeTtsText((quoteOnlyMatch[1] || quoteOnlyMatch[2] || "").replace(/[.!?]+$/, "")),
+        text: phrase ? `${point}. ${softenEnding(phrase)}` : `${point}...`,
         pauseAfterMs: 3000
       })
+
+      if (!inlinePhrase && nextUnit) {
+        index += 1
+      }
+
       continue
     }
 
-    if (eftPointRegex.test(unit)) {
+    if (quoteOnlyMatch) {
       segments.push({
-        text: unit,
+        text: softenEnding(quoteOnlyMatch[1] || quoteOnlyMatch[2] || ""),
         pauseAfterMs: 3000
       })
       continue
@@ -255,31 +243,31 @@ function buildSpeechPlan(reply) {
 
     if (breatheInRegex.test(unit)) {
       segments.push({
-        text: unit.replace(/[.!?]+$/, "."),
-        pauseAfterMs: 2500
+        text: softenEnding(unit),
+        pauseAfterMs: 3000
       })
       continue
     }
 
     if (andOutRegex.test(unit)) {
       segments.push({
-        text: "And out.",
-        pauseAfterMs: 2000
+        text: "And out...",
+        pauseAfterMs: 3000
       })
       continue
     }
 
     if (meditationCueRegex.test(unit)) {
       segments.push({
-        text: addPauses(unit),
+        text: softenEnding(unit),
         pauseAfterMs: 3000
       })
       continue
     }
 
     segments.push({
-      text: addPauses(unit),
-      pauseAfterMs: 1200
+      text: options.meditationMode ? softenEnding(unit) : addPauses(unit),
+      pauseAfterMs: options.meditationMode ? 3000 : 1200
     })
   }
 
@@ -436,19 +424,12 @@ async function handleChatVoice(req, res) {
     return
   }
 
-  const cleanedReply = cleanText(reply)
+  const cleanedReply = removePromptEcho(cleanText(reply), message)
   const meditationMode = isMeditationResponse(cleanedReply)
-  const narrationReply = meditationMode ? stripMeditationIntro(cleanedReply) : cleanedReply
-  const speechPlan = buildSpeechPlan(narrationReply)
+  const speechPlan = buildSpeechPlan(cleanedReply, { meditationMode })
   const audioSegments = []
 
   try {
-    if (meditationMode) {
-      const variantIndex = getMeditationVariantIndex(conversationId || message || cleanedReply)
-
-      audioSegments.push(loadLocalAudioSegment(MEDITATION_INTRO_FILES[variantIndex], 1200))
-    }
-
     for (const segment of speechPlan) {
       const synthesized = await synthesizeSpeech(segment.text)
       audioSegments.push({
@@ -457,19 +438,13 @@ async function handleChatVoice(req, res) {
         pauseAfterMs: segment.pauseAfterMs || 0
       })
     }
-
-    if (meditationMode) {
-      const variantIndex = getMeditationVariantIndex(conversationId || message || cleanedReply)
-
-      audioSegments.push(loadLocalAudioSegment(MEDITATION_OUTRO_FILES[variantIndex], 0))
-    }
   } catch (error) {
     sendJson(res, 502, { error: error.message || "ElevenLabs request failed" })
     return
   }
 
   sendJson(res, 200, {
-    reply: narrationReply,
+    reply: cleanedReply,
     conversationId:
       (chatData && chatData.conversationId) ||
       (chatData && chatData.data && chatData.data.conversationId) ||
