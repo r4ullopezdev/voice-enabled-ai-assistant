@@ -74,6 +74,12 @@ function removePromptEcho(reply, userMessage) {
 function normalizeTtsText(text) {
   return text
     .replace(/\bAnd\s+OUT\b[.!?]?/gi, "And out...")
+    .replace(/\bNOW\b/g, "Now")
+    .replace(/\bSTOP\b/g, "Stop")
+    .replace(/\bRESET\b/g, "Reset")
+    .replace(/!/g, ".")
+    .replace(/:/g, ".")
+    .replace(/;+/g, ",")
     .replace(/\.\.\./g, "...")
     .replace(/\s+/g, " ")
     .trim()
@@ -117,15 +123,17 @@ function softenEnding(text) {
 
 function getVoiceSettings() {
   return {
-    stability: 0.5,
-    similarity_boost: 0.8,
-    style: 0.15,
+    stability: 0.72,
+    similarity_boost: 0.78,
+    style: 0,
     use_speaker_boost: true,
-    speed: 0.82
+    speed: 0.84
   }
 }
 
 async function synthesizeSpeech(text) {
+  const normalizedText = normalizeTtsText(text)
+
   const ttsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + VOICE_ID, {
     method: "POST",
     headers: {
@@ -133,7 +141,7 @@ async function synthesizeSpeech(text) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      text,
+      text: normalizedText,
       model_id: "eleven_multilingual_v2",
       voice_settings: getVoiceSettings()
     })
