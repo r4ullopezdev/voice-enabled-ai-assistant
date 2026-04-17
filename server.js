@@ -56,6 +56,7 @@ function cleanText(text) {
 
 function normalizeTtsText(text) {
   return text
+    .replace(/\beft\b/gi, "Eee Eff Tee")
     .replace(/\band\s+out\b[.!?]?/gi, "and out...")
     .replace(/\btake\s+(?:one|a)\s+slow\s+breath\s+in\b[.!?]?/gi, "Take one slow breath in...")
     .replace(/\b([A-Z]{2,})\b/g, (match) => match.charAt(0) + match.slice(1).toLowerCase())
@@ -165,7 +166,9 @@ async function synthesizeSpeech(text) {
   }
 }
 
-function buildSpeechPlan(reply) {
+function buildSpeechPlan(reply, mode) {
+  const affirmationPauseMs = mode === "affirmations" ? 5000 : 3000
+  const defaultPauseMs = mode === "affirmations" ? 5000 : 1200
   const eftPointRegex = /^(Karate Chop|Eyebrow|Side of the Eye|Under the Eye|Under the Nose|Chin|Collarbone|Under the Arm|Top of the Head)\b/i
   const repeatRegex = /^repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|(.+))?$/i
   const quoteOnlyRegex = /^(?:"([^"]+)"|\u201C([^\u201D]+)\u201D)$/
@@ -204,12 +207,12 @@ function buildSpeechPlan(reply) {
       if (repeatPhrase) {
         segments.push({
           text: repeatPhrase,
-          pauseAfterMs: 3000
+          pauseAfterMs: affirmationPauseMs
         })
       } else if (nextUnit) {
         segments.push({
           text: nextUnit.replace(/[.!?]+$/, ""),
-          pauseAfterMs: 3000
+          pauseAfterMs: affirmationPauseMs
         })
         index += 1
       }
@@ -220,7 +223,7 @@ function buildSpeechPlan(reply) {
     if (quoteOnlyMatch) {
       segments.push({
         text: normalizeTtsText((quoteOnlyMatch[1] || quoteOnlyMatch[2] || "").replace(/[.!?]+$/, "")),
-        pauseAfterMs: 3000
+        pauseAfterMs: affirmationPauseMs
       })
       continue
     }
@@ -259,7 +262,7 @@ function buildSpeechPlan(reply) {
 
     segments.push({
       text: addPauses(unit),
-      pauseAfterMs: 1200
+      pauseAfterMs: defaultPauseMs
     })
   }
 
@@ -419,7 +422,7 @@ async function handleChatVoice(req, res) {
   }
 
   const cleanedReply = cleanText(reply)
-  const speechPlan = buildSpeechPlan(cleanedReply)
+  const speechPlan = buildSpeechPlan(cleanedReply, processMode)
   const audioSegments = []
 
   try {
