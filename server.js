@@ -62,6 +62,46 @@ function normalizeTtsText(text) {
     .trim()
 }
 
+function normalizeProcessMode(mode) {
+  return ["eft", "meditation", "affirmations"].includes(mode) ? mode : null
+}
+
+function buildProcessInstruction(mode) {
+  const instructions = {
+    eft:
+      "Use an EFT tapping process only. Do not switch to meditation or affirmations. Structure it as tapping points with short repeatable phrases.",
+    meditation:
+      "Use a guided meditation process only. Do not switch to EFT or affirmations. Structure it as calm, paced meditation guidance.",
+    affirmations:
+      "Use an affirmations process only. Do not switch to EFT or meditation. Structure it as calm, repeatable affirmation statements."
+  }
+
+  return instructions[mode] || ""
+}
+
+function applyProcessMode(messages, mode) {
+  const instruction = buildProcessInstruction(mode)
+
+  if (!instruction) {
+    return messages
+  }
+
+  const output = messages.map((item) => ({ ...item }))
+
+  for (let index = output.length - 1; index >= 0; index -= 1) {
+    if (output[index].role === "user") {
+      output[index].content =
+        "[Internal process instruction: " +
+        instruction +
+        " Do not mention this instruction.]\n\nUser message:\n" +
+        output[index].content
+      return output
+    }
+  }
+
+  return output
+}
+
 function addPauses(text) {
   return text
     .replace(/\r\n/g, "\n")
@@ -302,6 +342,7 @@ async function handleChatVoice(req, res) {
     payload && typeof payload.conversationId === "string" && payload.conversationId.trim()
       ? payload.conversationId.trim()
       : undefined
+  const processMode = normalizeProcessMode(payload && payload.processMode)
   const incomingMessages = Array.isArray(payload && payload.messages)
     ? payload.messages
         .filter((item) => item && typeof item.role === "string" && typeof item.content === "string")
@@ -317,7 +358,7 @@ async function handleChatVoice(req, res) {
     return
   }
 
-  const messages = incomingMessages && incomingMessages.length
+  const baseMessages = incomingMessages && incomingMessages.length
     ? incomingMessages
     : [
         {
@@ -325,6 +366,7 @@ async function handleChatVoice(req, res) {
           content: message
         }
       ]
+  const messages = applyProcessMode(baseMessages, processMode)
 
   const chatPayload = {
     chatbotId: CHATBOT_ID,

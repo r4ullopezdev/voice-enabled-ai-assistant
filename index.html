@@ -244,6 +244,7 @@
     let mediaStream = null
     let audioChunks = []
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
+    let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
     let recognition = null
     let recognitionTranscript = ""
@@ -305,6 +306,44 @@
       const historyWindow = conversationHistory.slice(-10)
 
       return [...historyWindow, { role: "user", content: userMessage }]
+    }
+
+    function getExplicitMode(text) {
+      if (/\b(eft|tapping|tap through|tapping round)\b/i.test(text)) {
+        return "eft"
+      }
+
+      if (/\b(meditation|meditate|breathing|breathwork|guided calm|calming meditation)\b/i.test(text)) {
+        return "meditation"
+      }
+
+      if (/\b(affirmation|affirmations|mantra|statements)\b/i.test(text)) {
+        return "affirmations"
+      }
+
+      return null
+    }
+
+    function selectProcessMode(text) {
+      const explicitMode = getExplicitMode(text)
+
+      if (explicitMode) {
+        lastMode = explicitMode
+        localStorage.setItem("tdt_last_mode", lastMode)
+        return explicitMode
+      }
+
+      const modes = ["eft", "meditation", "affirmations"]
+      let selectedMode = modes[Math.floor(Math.random() * modes.length)]
+
+      if (selectedMode === lastMode) {
+        selectedMode = modes[Math.floor(Math.random() * modes.length)]
+      }
+
+      lastMode = selectedMode
+      localStorage.setItem("tdt_last_mode", lastMode)
+
+      return selectedMode
     }
 
     function updateControls() {
@@ -418,6 +457,7 @@
 
       try {
         const outgoingMessages = buildOutgoingMessages(text)
+        const processMode = selectProcessMode(text)
         const data = await requestJson("/api/chat-voice", {
           method: "POST",
           headers: {
@@ -426,7 +466,8 @@
           body: JSON.stringify({
             message: text,
             conversationId: conversationId,
-            messages: outgoingMessages
+            messages: outgoingMessages,
+            processMode: processMode
           })
         })
 
@@ -623,6 +664,8 @@
       conversationHistory = []
       localStorage.removeItem("tdt_conversation_id")
       localStorage.removeItem("tdt_conversation_history")
+      localStorage.removeItem("tdt_last_mode")
+      lastMode = null
       replyBoxEl.textContent = ""
       msgEl.value = ""
       updateSessionIndicator()
