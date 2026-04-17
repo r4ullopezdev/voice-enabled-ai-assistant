@@ -334,11 +334,8 @@
       }
 
       const modes = ["eft", "meditation", "affirmations"]
-      let selectedMode = modes[Math.floor(Math.random() * modes.length)]
-
-      if (selectedMode === lastMode) {
-        selectedMode = modes[Math.floor(Math.random() * modes.length)]
-      }
+      const availableModes = lastMode ? modes.filter((mode) => mode !== lastMode) : modes
+      const selectedMode = availableModes[Math.floor(Math.random() * availableModes.length)]
 
       lastMode = selectedMode
       localStorage.setItem("tdt_last_mode", lastMode)
