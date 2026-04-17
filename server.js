@@ -56,9 +56,19 @@ function cleanText(text) {
 
 function normalizeTtsText(text) {
   return text
-    .replace(/\bAnd OUT\./g, "And out.")
-    .replace(/\bAND OUT\./g, "And out.")
+    .replace(/\band\s+out\b[.!?]?/gi, "and out...")
+    .replace(/\btake\s+(?:one|a)\s+slow\s+breath\s+in\b[.!?]?/gi, "Take one slow breath in...")
+    .replace(/\b([A-Z]{2,})\b/g, (match) => match.charAt(0) + match.slice(1).toLowerCase())
     .replace(/\s+/g, " ")
+    .trim()
+}
+
+function softenMeditationText(text) {
+  return normalizeTtsText(text)
+    .replace(/\bPause here\b[.!?]?/gi, "Pause here...")
+    .replace(/\bGood\b[.!?]?/gi, "Good...")
+    .replace(/[.!?]+$/g, "...")
+    .replace(/\.{4,}/g, "...")
     .trim()
 }
 
@@ -127,6 +137,8 @@ function getVoiceSettings() {
 }
 
 async function synthesizeSpeech(text) {
+  const normalizedText = normalizeTtsText(text)
+
   const ttsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + VOICE_ID, {
     method: "POST",
     headers: {
@@ -134,7 +146,7 @@ async function synthesizeSpeech(text) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      text,
+      text: normalizedText,
       model_id: "eleven_multilingual_v2",
       voice_settings: getVoiceSettings()
     })
@@ -158,7 +170,7 @@ function buildSpeechPlan(reply) {
   const repeatRegex = /^repeat after me\s*[:.-]?\s*(?:"([^"]+)"|\u201C([^\u201D]+)\u201D|(.+))?$/i
   const quoteOnlyRegex = /^(?:"([^"]+)"|\u201C([^\u201D]+)\u201D)$/
   const breatheInRegex = /^(?:take one slow )?(?:breath|breathe)\s+in(?:\.\.\.|[.!?])?$/i
-  const andOutRegex = /^and out[.!?]?$/i
+  const andOutRegex = /^and out(?:\.\.\.|[.!?])?$/i
   const meditationCueRegex = /^(notice|allow|feel|let|imagine|stay|bring|soften|release|breathe|inhale|exhale|listen|rest|settle|become aware|take one slow breath in|and out)\b/i
   const segments = []
 
@@ -223,7 +235,7 @@ function buildSpeechPlan(reply) {
 
     if (breatheInRegex.test(unit)) {
       segments.push({
-        text: unit.replace(/[.!?]+$/, "."),
+        text: softenMeditationText(unit),
         pauseAfterMs: 2500
       })
       continue
@@ -231,15 +243,15 @@ function buildSpeechPlan(reply) {
 
     if (andOutRegex.test(unit)) {
       segments.push({
-        text: "And out.",
-        pauseAfterMs: 2000
+        text: "and out...",
+        pauseAfterMs: 3000
       })
       continue
     }
 
     if (meditationCueRegex.test(unit)) {
       segments.push({
-        text: addPauses(unit),
+        text: softenMeditationText(unit),
         pauseAfterMs: 3000
       })
       continue
