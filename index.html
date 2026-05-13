@@ -1148,12 +1148,12 @@
 
       setPanelOpen(true)
 
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-        if (SpeechRecognitionCtor) {
-          startSpeechRecognition()
-          return
-        }
+      if (SpeechRecognitionCtor) {
+        startSpeechRecognition()
+        return
+      }
 
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
         setStatus("Audio recording is not supported in this browser.")
         return
       }
@@ -1238,7 +1238,8 @@
         recognitionStopping = false
         recognition = new SpeechRecognitionCtor()
         recognition.lang = "en-US"
-        recognition.interimResults = false
+        recognition.continuous = true
+        recognition.interimResults = true
         recognition.maxAlternatives = 1
 
         recognition.onresult = (event) => {
@@ -1246,6 +1247,10 @@
             .map((result) => result[0] && result[0].transcript ? result[0].transcript : "")
             .join(" ")
             .trim()
+
+          if (recognitionTranscript) {
+            msgEl.value = recognitionTranscript
+          }
         }
 
         recognition.onerror = (event) => {
