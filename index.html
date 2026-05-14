@@ -868,6 +868,7 @@
     let mediaStream = null
     let audioChunks = []
     let recordingFinalized = false
+    let recordingStopTimer = null
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
@@ -1062,12 +1063,20 @@
       }
 
       recordingFinalized = true
+      if (recordingStopTimer) {
+        window.clearTimeout(recordingStopTimer)
+        recordingStopTimer = null
+      }
       isRecording = false
       updateControls()
       setBusy(true)
       setStatus("Transcribing audio...")
 
       try {
+        if (!audioChunks.length) {
+          throw new Error("No microphone audio captured")
+        }
+
         const audioBlob = new Blob(audioChunks, {
           type: mimeType || "audio/webm"
         })
@@ -1236,6 +1245,7 @@
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
         audioChunks = []
         recordingFinalized = false
+        recordingStopTimer = null
         mediaRecorder = new MediaRecorder(mediaStream)
         const recorderMimeType = mediaRecorder.mimeType || "audio/webm"
 
@@ -1243,13 +1253,29 @@
           if (event.data && event.data.size > 0) {
             audioChunks.push(event.data)
           }
+
+          if (mediaRecorder && mediaRecorder.state === "inactive" && audioChunks.length > 0 && !recordingFinalized) {
+            finalizeRecordedAudio(recorderMimeType).catch((error) => {
+              console.error(error)
+              setStatus("Transcription failed. Please try again.")
+            })
+          }
+        }
+
+        mediaRecorder.onerror = (event) => {
+          console.error(event)
+          recordingFinalized = true
+          cleanupStream()
+          isRecording = false
+          updateControls()
+          setStatus("Mic error: Recording failed.")
         }
 
         mediaRecorder.onstop = async () => {
           await finalizeRecordedAudio(recorderMimeType)
         }
 
-        mediaRecorder.start()
+        mediaRecorder.start(250)
         isRecording = true
         updateControls()
         setStatus("Recording... Click Stop when you finish.")
@@ -1272,15 +1298,18 @@
         console.error(error)
       }
 
+      isRecording = false
+      updateControls()
       mediaRecorder.stop()
-      window.setTimeout(() => {
+
+      recordingStopTimer = window.setTimeout(() => {
         if (!recordingFinalized) {
           finalizeRecordedAudio(mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : "audio/webm").catch((error) => {
             console.error(error)
             setStatus("Transcription failed. Please try again.")
           })
         }
-      }, 1200)
+      }, 900)
     }
 
     function cleanupStream() {
@@ -1291,6 +1320,7 @@
       mediaStream = null
       mediaRecorder = null
       audioChunks = []
+      recordingStopTimer = null
     }
 
     function resetConversation() {
