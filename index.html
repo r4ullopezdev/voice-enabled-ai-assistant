@@ -867,8 +867,11 @@
     let mediaRecorder = null
     let mediaStream = null
     let audioChunks = []
-    let recordingFinalized = false
-    let recordingStopTimer = null
+    let audioContext = null
+    let audioSourceNode = null
+    let audioProcessorNode = null
+    let pcmChunks = []
+    let pcmSampleRate = 44100
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
@@ -1057,34 +1060,15 @@
       })
     }
 
-    async function finalizeRecordedAudio(mimeType) {
-      if (recordingFinalized) {
-        return
-      }
-
-      recordingFinalized = true
-      if (recordingStopTimer) {
-        window.clearTimeout(recordingStopTimer)
-        recordingStopTimer = null
-      }
-      isRecording = false
-      updateControls()
+    async function transcribeAudioBlob(audioBlob) {
       setBusy(true)
       setStatus("Transcribing audio...")
 
       try {
-        if (!audioChunks.length) {
-          throw new Error("No microphone audio captured")
-        }
-
-        const audioBlob = new Blob(audioChunks, {
-          type: mimeType || "audio/webm"
-        })
-
         const data = await requestJson("/api/transcribe", {
           method: "POST",
           headers: {
-            "Content-Type": audioBlob.type || "audio/webm"
+            "Content-Type": audioBlob.type || "audio/wav"
           },
           body: audioBlob
         })
@@ -1104,6 +1088,84 @@
         cleanupStream()
         setBusy(false)
       }
+    }
+
+    function mergePcmChunks(chunks) {
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
+      const merged = new Float32Array(totalLength)
+      let offset = 0
+
+      for (const chunk of chunks) {
+        merged.set(chunk, offset)
+        offset += chunk.length
+      }
+
+      return merged
+    }
+
+    function encodeWav(samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2)
+      const view = new DataView(buffer)
+
+      function writeString(offset, value) {
+        for (let index = 0; index < value.length; index += 1) {
+          view.setUint8(offset + index, value.charCodeAt(index))
+        }
+      }
+
+      writeString(0, "RIFF")
+      view.setUint32(4, 36 + samples.length * 2, true)
+      writeString(8, "WAVE")
+      writeString(12, "fmt ")
+      view.setUint32(16, 16, true)
+      view.setUint16(20, 1, true)
+      view.setUint16(22, 1, true)
+      view.setUint32(24, sampleRate, true)
+      view.setUint32(28, sampleRate * 2, true)
+      view.setUint16(32, 2, true)
+      view.setUint16(34, 16, true)
+      writeString(36, "data")
+      view.setUint32(40, samples.length * 2, true)
+
+      let offset = 44
+      for (let index = 0; index < samples.length; index += 1) {
+        const sample = Math.max(-1, Math.min(1, samples[index]))
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+        offset += 2
+      }
+
+      return new Blob([buffer], { type: "audio/wav" })
+    }
+
+    async function startPcmRecording(stream) {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+
+      if (!AudioContextCtor) {
+        throw new Error("Web Audio API is not supported in this browser.")
+      }
+
+      audioContext = new AudioContextCtor()
+      await audioContext.resume()
+      pcmSampleRate = audioContext.sampleRate || 44100
+      pcmChunks = []
+      audioSourceNode = audioContext.createMediaStreamSource(stream)
+      audioProcessorNode = audioContext.createScriptProcessor(4096, 1, 1)
+
+      audioProcessorNode.onaudioprocess = (event) => {
+        if (!isRecording) {
+          return
+        }
+
+        const input = event.inputBuffer.getChannelData(0)
+        pcmChunks.push(new Float32Array(input))
+      }
+
+      audioSourceNode.connect(audioProcessorNode)
+      audioProcessorNode.connect(audioContext.destination)
+
+      isRecording = true
+      updateControls()
+      setStatus("Recording... Click Stop when you finish.")
     }
 
     async function playAudioSegments(segments, token) {
@@ -1244,41 +1306,7 @@
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
         audioChunks = []
-        recordingFinalized = false
-        recordingStopTimer = null
-        mediaRecorder = new MediaRecorder(mediaStream)
-        const recorderMimeType = mediaRecorder.mimeType || "audio/webm"
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            audioChunks.push(event.data)
-          }
-
-          if (mediaRecorder && mediaRecorder.state === "inactive" && audioChunks.length > 0 && !recordingFinalized) {
-            finalizeRecordedAudio(recorderMimeType).catch((error) => {
-              console.error(error)
-              setStatus("Transcription failed. Please try again.")
-            })
-          }
-        }
-
-        mediaRecorder.onerror = (event) => {
-          console.error(event)
-          recordingFinalized = true
-          cleanupStream()
-          isRecording = false
-          updateControls()
-          setStatus("Mic error: Recording failed.")
-        }
-
-        mediaRecorder.onstop = async () => {
-          await finalizeRecordedAudio(recorderMimeType)
-        }
-
-        mediaRecorder.start(250)
-        isRecording = true
-        updateControls()
-        setStatus("Recording... Click Stop when you finish.")
+        await startPcmRecording(mediaStream)
       } catch (error) {
         console.error(error)
         cleanupStream()
@@ -1287,40 +1315,61 @@
     }
 
     function stopRecording() {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      if (!isRecording) {
         return
       }
 
       setStatus("Stopping...")
-      try {
-        mediaRecorder.requestData()
-      } catch (error) {
-        console.error(error)
-      }
-
       isRecording = false
       updateControls()
-      mediaRecorder.stop()
 
-      recordingStopTimer = window.setTimeout(() => {
-        if (!recordingFinalized) {
-          finalizeRecordedAudio(mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : "audio/webm").catch((error) => {
+      window.setTimeout(() => {
+        try {
+          const mergedSamples = mergePcmChunks(pcmChunks)
+
+          if (!mergedSamples.length) {
+            throw new Error("No microphone audio captured")
+          }
+
+          const audioBlob = encodeWav(mergedSamples, pcmSampleRate)
+          transcribeAudioBlob(audioBlob).catch((error) => {
             console.error(error)
             setStatus("Transcription failed. Please try again.")
           })
+        } catch (error) {
+          console.error(error)
+          cleanupStream()
+          setStatus("Transcription failed. Please try again.")
         }
-      }, 900)
+      }, 150)
     }
 
     function cleanupStream() {
+      if (audioProcessorNode) {
+        audioProcessorNode.disconnect()
+        audioProcessorNode.onaudioprocess = null
+      }
+
+      if (audioSourceNode) {
+        audioSourceNode.disconnect()
+      }
+
+      if (audioContext) {
+        audioContext.close().catch(() => {})
+      }
+
       if (mediaStream) {
         mediaStream.getTracks().forEach((track) => track.stop())
       }
 
+      audioProcessorNode = null
+      audioSourceNode = null
+      audioContext = null
+      pcmChunks = []
+      pcmSampleRate = 44100
       mediaStream = null
       mediaRecorder = null
       audioChunks = []
-      recordingStopTimer = null
     }
 
     function resetConversation() {
