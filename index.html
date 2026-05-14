@@ -867,6 +867,7 @@
     let mediaRecorder = null
     let mediaStream = null
     let audioChunks = []
+    let recordingFinalized = false
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
@@ -1055,6 +1056,47 @@
       })
     }
 
+    async function finalizeRecordedAudio(mimeType) {
+      if (recordingFinalized) {
+        return
+      }
+
+      recordingFinalized = true
+      isRecording = false
+      updateControls()
+      setBusy(true)
+      setStatus("Transcribing audio...")
+
+      try {
+        const audioBlob = new Blob(audioChunks, {
+          type: mimeType || "audio/webm"
+        })
+
+        const data = await requestJson("/api/transcribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": audioBlob.type || "audio/webm"
+          },
+          body: audioBlob
+        })
+
+        msgEl.value = data.text || ""
+
+        if (!msgEl.value.trim()) {
+          throw new Error("No speech detected")
+        }
+
+        setStatus("Transcription ready. Sending...")
+        await send(true)
+      } catch (error) {
+        console.error(error)
+        setStatus("Transcription failed. Please try again.")
+      } finally {
+        cleanupStream()
+        setBusy(false)
+      }
+    }
+
     async function playAudioSegments(segments, token) {
       for (const segment of segments) {
         if (token !== playbackToken) {
@@ -1193,7 +1235,9 @@
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
         audioChunks = []
+        recordingFinalized = false
         mediaRecorder = new MediaRecorder(mediaStream)
+        const recorderMimeType = mediaRecorder.mimeType || "audio/webm"
 
         mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
@@ -1202,39 +1246,7 @@
         }
 
         mediaRecorder.onstop = async () => {
-          isRecording = false
-          updateControls()
-          setBusy(true)
-          setStatus("Transcribing audio...")
-
-          try {
-            const audioBlob = new Blob(audioChunks, {
-              type: mediaRecorder.mimeType || "audio/webm"
-            })
-
-            const data = await requestJson("/api/transcribe", {
-              method: "POST",
-              headers: {
-                "Content-Type": audioBlob.type || "audio/webm"
-              },
-              body: audioBlob
-            })
-
-            msgEl.value = data.text || ""
-
-            if (!msgEl.value.trim()) {
-              throw new Error("No speech detected")
-            }
-
-            setStatus("Transcription ready. Sending...")
-            await send(true)
-          } catch (error) {
-            console.error(error)
-            setStatus("Transcription failed. Please try again.")
-          } finally {
-            cleanupStream()
-            setBusy(false)
-          }
+          await finalizeRecordedAudio(recorderMimeType)
         }
 
         mediaRecorder.start()
@@ -1254,7 +1266,21 @@
       }
 
       setStatus("Stopping...")
+      try {
+        mediaRecorder.requestData()
+      } catch (error) {
+        console.error(error)
+      }
+
       mediaRecorder.stop()
+      window.setTimeout(() => {
+        if (!recordingFinalized) {
+          finalizeRecordedAudio(mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : "audio/webm").catch((error) => {
+            console.error(error)
+            setStatus("Transcription failed. Please try again.")
+          })
+        }
+      }, 1200)
     }
 
     function cleanupStream() {
