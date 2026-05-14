@@ -867,6 +867,7 @@
     let mediaRecorder = null
     let mediaStream = null
     let audioChunks = []
+    let mediaRecorderMimeType = "audio/webm"
     let audioContext = null
     let audioSourceNode = null
     let audioProcessorNode = null
@@ -1090,6 +1091,22 @@
       }
     }
 
+    function buildRecordedBlob() {
+      if (audioChunks.length) {
+        return new Blob(audioChunks, {
+          type: mediaRecorderMimeType || "audio/webm"
+        })
+      }
+
+      const mergedSamples = mergePcmChunks(pcmChunks)
+
+      if (!mergedSamples.length) {
+        throw new Error("No microphone audio captured")
+      }
+
+      return encodeWav(mergedSamples, pcmSampleRate)
+    }
+
     function mergePcmChunks(chunks) {
       const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
       const merged = new Float32Array(totalLength)
@@ -1166,6 +1183,21 @@
       isRecording = true
       updateControls()
       setStatus("Recording... Click Stop when you finish.")
+    }
+
+    function getPreferredRecorderMimeType() {
+      if (!window.MediaRecorder || !window.MediaRecorder.isTypeSupported) {
+        return ""
+      }
+
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus"
+      ]
+
+      return candidates.find((mimeType) => window.MediaRecorder.isTypeSupported(mimeType)) || ""
     }
 
     async function playAudioSegments(segments, token) {
@@ -1306,6 +1338,26 @@
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true })
         audioChunks = []
+        mediaRecorderMimeType = getPreferredRecorderMimeType() || "audio/webm"
+
+        if (window.MediaRecorder) {
+          mediaRecorder = mediaRecorderMimeType && mediaRecorderMimeType !== "audio/webm"
+            ? new MediaRecorder(mediaStream, { mimeType: mediaRecorderMimeType })
+            : new MediaRecorder(mediaStream)
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              audioChunks.push(event.data)
+            }
+          }
+
+          mediaRecorder.onerror = (event) => {
+            console.error(event)
+          }
+
+          mediaRecorder.start(250)
+        }
+
         await startPcmRecording(mediaStream)
       } catch (error) {
         console.error(error)
@@ -1325,23 +1377,33 @@
 
       window.setTimeout(() => {
         try {
-          const mergedSamples = mergePcmChunks(pcmChunks)
+          if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            try {
+              mediaRecorder.requestData()
+            } catch (error) {
+              console.error(error)
+            }
 
-          if (!mergedSamples.length) {
-            throw new Error("No microphone audio captured")
+            mediaRecorder.stop()
           }
-
-          const audioBlob = encodeWav(mergedSamples, pcmSampleRate)
-          transcribeAudioBlob(audioBlob).catch((error) => {
-            console.error(error)
-            setStatus("Transcription failed. Please try again.")
-          })
         } catch (error) {
           console.error(error)
-          cleanupStream()
-          setStatus("Transcription failed. Please try again.")
         }
-      }, 150)
+
+        window.setTimeout(() => {
+          try {
+            const audioBlob = buildRecordedBlob()
+            transcribeAudioBlob(audioBlob).catch((error) => {
+              console.error(error)
+              setStatus("Transcription failed. Please try again.")
+            })
+          } catch (error) {
+            console.error(error)
+            cleanupStream()
+            setStatus("Transcription failed. Please try again.")
+          }
+        }, 220)
+      }, 80)
     }
 
     function cleanupStream() {
@@ -1370,6 +1432,7 @@
       mediaStream = null
       mediaRecorder = null
       audioChunks = []
+      mediaRecorderMimeType = "audio/webm"
     }
 
     function resetConversation() {
