@@ -583,6 +583,30 @@
       line-height: 1.6;
     }
 
+    .recording-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      color: #8b2f24;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .recording-indicator.active {
+      display: inline-flex;
+    }
+
+    .recording-indicator::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #c34736;
+      box-shadow: 0 0 0 0 rgba(195, 71, 54, 0.35);
+      animation: pulse 1.5s ease-out infinite;
+    }
+
     .foot-note {
       max-width: 34ch;
     }
@@ -603,6 +627,20 @@
       height: 7px;
       border-radius: 999px;
       background: var(--brand-green);
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(195, 71, 54, 0.35);
+      }
+
+      70% {
+        box-shadow: 0 0 0 12px rgba(195, 71, 54, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(195, 71, 54, 0);
+      }
     }
 
     @media (max-width: 960px) {
@@ -814,6 +852,7 @@
 
             <div class="composer-foot">
               <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
+              <div id="recordingIndicator" class="recording-indicator">Recording...</div>
               <div class="behavior-note">Audio playback remains active in this panel</div>
             </div>
           </section>
@@ -831,9 +870,6 @@
     let conversationId = localStorage.getItem("tdt_conversation_id") || null
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
-    let recognition = null
-    let recognitionTranscript = ""
-    let recognitionStopping = false
     let playbackToken = 0
     let isPanelOpen = loadPanelState()
 
@@ -845,13 +881,13 @@
     const sendBtnEl = document.getElementById("sendBtn")
     const micBtnEl = document.getElementById("micBtn")
     const resetBtnEl = document.getElementById("resetBtn")
+    const recordingIndicatorEl = document.getElementById("recordingIndicator")
     const launcherBtnEl = document.getElementById("launcherBtn")
     const panelShellEl = document.getElementById("panelShell")
     const minimizeBtnEl = document.getElementById("minimizeBtn")
     const expandBtnEl = document.getElementById("expandBtn")
     const audioEl = new Audio()
     const isFileOrigin = window.location.protocol === "file:"
-    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null
 
     function loadPanelState() {
       const stored = localStorage.getItem("tisha_panel_open")
@@ -978,6 +1014,7 @@
       micBtnEl.disabled = isBusy
       resetBtnEl.disabled = isBusy || isRecording
       micBtnEl.textContent = isRecording ? "Stop" : "Speak"
+      recordingIndicatorEl.classList.toggle("active", isRecording)
       minimizeBtnEl.disabled = !isPanelOpen
       expandBtnEl.disabled = isPanelOpen
     }
@@ -1148,13 +1185,8 @@
 
       setPanelOpen(true)
 
-      if (SpeechRecognitionCtor) {
-        startSpeechRecognition()
-        return
-      }
-
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-        setStatus("Audio recording is not supported in this browser.")
+        setStatus("This browser does not support microphone recording.")
         return
       }
 
@@ -1198,7 +1230,7 @@
             await send(true)
           } catch (error) {
             console.error(error)
-            setStatus("Error: " + error.message)
+            setStatus("Transcription failed. Please try again.")
           } finally {
             cleanupStream()
             setBusy(false)
@@ -1208,7 +1240,7 @@
         mediaRecorder.start()
         isRecording = true
         updateControls()
-        setStatus("Listening... Click Stop when you finish.")
+        setStatus("Recording... Click Stop when you finish.")
       } catch (error) {
         console.error(error)
         cleanupStream()
@@ -1217,79 +1249,12 @@
     }
 
     function stopRecording() {
-      if (recognition) {
-        recognitionStopping = true
-        setStatus("Stopping recording...")
-        recognition.stop()
-        return
-      }
-
       if (!mediaRecorder || mediaRecorder.state === "inactive") {
         return
       }
 
-      setStatus("Stopping recording...")
+      setStatus("Stopping...")
       mediaRecorder.stop()
-    }
-
-    function startSpeechRecognition() {
-      try {
-        recognitionTranscript = ""
-        recognitionStopping = false
-        recognition = new SpeechRecognitionCtor()
-        recognition.lang = "en-US"
-        recognition.continuous = true
-        recognition.interimResults = true
-        recognition.maxAlternatives = 1
-
-        recognition.onresult = (event) => {
-          recognitionTranscript = Array.from(event.results)
-            .map((result) => result[0] && result[0].transcript ? result[0].transcript : "")
-            .join(" ")
-            .trim()
-
-          if (recognitionTranscript) {
-            msgEl.value = recognitionTranscript
-          }
-        }
-
-        recognition.onerror = (event) => {
-          if (recognitionStopping && event.error === "aborted") {
-            return
-          }
-
-          console.error(event)
-          recognition = null
-          isRecording = false
-          updateControls()
-          setStatus("Mic error: " + (event.message || event.error || "Speech recognition failed"))
-        }
-
-        recognition.onend = async () => {
-          const transcript = recognitionTranscript.trim()
-          recognition = null
-          isRecording = false
-          updateControls()
-
-          if (!transcript) {
-            setStatus("No speech detected.")
-            return
-          }
-
-          msgEl.value = transcript
-          setStatus("Transcription ready. Sending...")
-          await send(true)
-        }
-
-        recognition.start()
-        isRecording = true
-        updateControls()
-        setStatus("Listening... Click Stop when you finish.")
-      } catch (error) {
-        console.error(error)
-        recognition = null
-        setStatus("Mic error: " + error.message)
-      }
     }
 
     function cleanupStream() {

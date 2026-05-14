@@ -263,7 +263,8 @@ async function handleTranscription(req, res) {
 
   const form = new FormData()
   const contentType = req.headers["content-type"] || "audio/webm"
-  form.append("file", new Blob([audioBuffer], { type: contentType }), "recording.webm")
+  const fileExtension = getAudioExtension(contentType)
+  form.append("file", new Blob([audioBuffer], { type: contentType }), "recording." + fileExtension)
   form.append("model", "gpt-4o-mini-transcribe")
 
   const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
@@ -284,6 +285,26 @@ async function handleTranscription(req, res) {
   }
 
   sendJson(res, 200, { text: data && data.text ? data.text : "" })
+}
+
+function getAudioExtension(contentType) {
+  if (/wav/i.test(contentType)) {
+    return "wav"
+  }
+
+  if (/mpeg|mp3/i.test(contentType)) {
+    return "mp3"
+  }
+
+  if (/ogg/i.test(contentType)) {
+    return "ogg"
+  }
+
+  if (/mp4|m4a|aac/i.test(contentType)) {
+    return "m4a"
+  }
+
+  return "webm"
 }
 
 async function handleChatVoice(req, res) {
