@@ -55,7 +55,6 @@
       position: relative;
       min-height: 100vh;
       padding: 32px;
-      padding-right: calc(var(--panel-width) + 64px);
       overflow: hidden;
     }
 
@@ -176,6 +175,30 @@
       pointer-events: none;
     }
 
+    .floating-wrap {
+      position: fixed;
+      z-index: 19;
+      pointer-events: auto;
+    }
+
+    .floating-wrap.minimized {
+      opacity: 0;
+      transform: translateY(18px) scale(0.92);
+      pointer-events: none;
+    }
+
+    .response-wrap {
+      right: 22px;
+      top: 24px;
+      width: min(100%, var(--panel-width));
+    }
+
+    .composer-wrap {
+      right: 22px;
+      bottom: 22px;
+      width: min(100%, var(--panel-width));
+    }
+
     .launcher {
       position: absolute;
       right: 8px;
@@ -245,12 +268,6 @@
       pointer-events: auto;
     }
 
-    .panel-shell.minimized {
-      opacity: 0;
-      transform: translateY(18px) scale(0.92);
-      pointer-events: none;
-    }
-
     .panel-topbar {
       position: relative;
       padding: 16px 18px 12px;
@@ -264,6 +281,45 @@
 
     .panel-shell.dragging .panel-topbar {
       cursor: grabbing;
+    }
+
+    .composer-shell {
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 240, 232, 0.94) 100%);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .composer-shell.dragging .composer-topbar {
+      cursor: grabbing;
+    }
+
+    .composer-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid rgba(44, 36, 24, 0.08);
+      background: rgba(255, 252, 247, 0.88);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .composer-topbar strong {
+      color: var(--brown-dark);
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .composer-topbar span {
+      color: var(--muted);
+      font: 11px/1.2 "Courier New", Courier, monospace;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .panel-topbar::after {
@@ -722,16 +778,11 @@
       .ambient-preview {
         max-width: 360px;
       }
-
-      .workspace-shell {
-        padding-right: calc(min(440px, 44vw) + 48px);
-      }
     }
 
     @media (max-width: 640px) {
       .workspace-shell {
         padding: 18px;
-        padding-right: 18px;
       }
 
       .ambient-preview {
@@ -756,6 +807,17 @@
         pointer-events: auto;
       }
 
+      .floating-wrap {
+        position: static;
+        width: auto;
+        margin-top: 14px;
+      }
+
+      .response-wrap,
+      .composer-wrap {
+        width: auto;
+      }
+
       .launcher {
         position: fixed;
         right: 18px;
@@ -768,6 +830,10 @@
         max-height: none;
         min-height: 0;
         border-radius: 24px;
+      }
+
+      .composer-shell {
+        width: 100%;
       }
 
       .response-card {
@@ -845,6 +911,9 @@
         <span class="launcher-mark" aria-hidden="true">✦</span>
       </button>
 
+    </div>
+
+    <div id="responseWrap" class="floating-wrap response-wrap">
       <aside id="panelShell" class="panel-shell" aria-live="polite">
         <header class="panel-topbar">
           <div class="topbar-row">
@@ -890,26 +959,34 @@
               <p id="replyBox" class="response-placeholder">Guidance will appear here once the session begins.</p>
             </div>
           </section>
-
-          <section class="composer-card">
-            <div class="input-wrap">
-              <input id="msg" placeholder="What's happening right now?" />
-            </div>
-
-            <div class="composer-actions">
-              <button id="sendBtn" class="primary-btn" type="button" onclick="send()">Send</button>
-              <button id="micBtn" class="secondary-btn" type="button" onclick="toggleMic()">Speak</button>
-              <button id="resetBtn" class="tertiary-btn" type="button" onclick="resetConversation()">New Session</button>
-            </div>
-
-            <div class="composer-foot">
-              <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
-              <div id="recordingIndicator" class="recording-indicator">mic ready</div>
-              <div class="behavior-note">Audio playback remains active in this panel</div>
-            </div>
-          </section>
         </div>
       </aside>
+    </div>
+
+    <div id="composerWrap" class="floating-wrap composer-wrap">
+      <section id="composerShell" class="composer-shell">
+        <div id="composerTopbar" class="composer-topbar">
+          <strong>Response Controls</strong>
+          <span>Drag</span>
+        </div>
+        <section class="composer-card">
+          <div class="input-wrap">
+            <input id="msg" placeholder="What's happening right now?" />
+          </div>
+
+          <div class="composer-actions">
+            <button id="sendBtn" class="primary-btn" type="button" onclick="send()">Send</button>
+            <button id="micBtn" class="secondary-btn" type="button" onclick="toggleMic()">Speak</button>
+            <button id="resetBtn" class="tertiary-btn" type="button" onclick="resetConversation()">New Session</button>
+          </div>
+
+          <div class="composer-foot">
+            <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
+            <div id="recordingIndicator" class="recording-indicator">mic ready</div>
+            <div class="behavior-note">Audio playback remains active in this panel</div>
+          </div>
+        </section>
+      </section>
     </div>
   </div>
 
@@ -931,7 +1008,8 @@
     let playbackToken = 0
     let isPanelOpen = loadPanelState()
     let isSupportOpen = loadSupportState()
-    let panelPosition = loadPanelPosition()
+    let responsePosition = loadFloatingPosition("tisha_response_position")
+    let composerPosition = loadFloatingPosition("tisha_composer_position")
     let dragState = null
 
     const statusEl = document.getElementById("status")
@@ -944,9 +1022,13 @@
     const resetBtnEl = document.getElementById("resetBtn")
     const recordingIndicatorEl = document.getElementById("recordingIndicator")
     const companionLayerEl = document.querySelector(".companion-layer")
+    const responseWrapEl = document.getElementById("responseWrap")
+    const composerWrapEl = document.getElementById("composerWrap")
     const launcherBtnEl = document.getElementById("launcherBtn")
     const panelTopbarEl = document.querySelector(".panel-topbar")
     const panelShellEl = document.getElementById("panelShell")
+    const composerShellEl = document.getElementById("composerShell")
+    const composerTopbarEl = document.getElementById("composerTopbar")
     const supportCardEl = document.getElementById("supportCard")
     const supportBodyEl = document.getElementById("supportBody")
     const supportToggleEl = document.getElementById("supportToggle")
@@ -984,9 +1066,9 @@
       return true
     }
 
-    function loadPanelPosition() {
+    function loadFloatingPosition(storageKey) {
       try {
-        const stored = localStorage.getItem("tisha_panel_position")
+        const stored = localStorage.getItem(storageKey)
         const parsed = stored ? JSON.parse(stored) : null
 
         if (
@@ -1009,11 +1091,11 @@
       localStorage.setItem("tisha_support_open", String(isSupportOpen))
     }
 
-    function savePanelPosition() {
-      if (panelPosition) {
-        localStorage.setItem("tisha_panel_position", JSON.stringify(panelPosition))
+    function saveFloatingPosition(storageKey, position) {
+      if (position) {
+        localStorage.setItem(storageKey, JSON.stringify(position))
       } else {
-        localStorage.removeItem("tisha_panel_position")
+        localStorage.removeItem(storageKey)
       }
     }
 
@@ -1021,9 +1103,9 @@
       return window.innerWidth > 640
     }
 
-    function clampPanelPosition(position) {
+    function clampFloatingPosition(position, shellEl) {
       const panelWidth = companionPanelWidth()
-      const panelHeight = panelShellEl.offsetHeight || 760
+      const panelHeight = shellEl.offsetHeight || 760
       const maxLeft = Math.max(12, window.innerWidth - panelWidth - 12)
       const maxTop = Math.max(12, window.innerHeight - panelHeight - 12)
 
@@ -1046,44 +1128,60 @@
       return width || 540
     }
 
-    function clearPanelPositionStyles() {
-      companionLayerEl.style.left = ""
-      companionLayerEl.style.top = ""
-      companionLayerEl.style.right = ""
-      companionLayerEl.style.bottom = ""
+    function clearFloatingPositionStyles(wrapperEl) {
+      wrapperEl.style.left = ""
+      wrapperEl.style.top = ""
+      wrapperEl.style.right = ""
+      wrapperEl.style.bottom = ""
     }
 
-    function applyPanelPosition() {
+    function applyFloatingPosition(wrapperEl, shellEl, position, defaults) {
       if (!isDesktopLayout() || !isPanelOpen) {
-        companionLayerEl.classList.remove("is-draggable")
-        clearPanelPositionStyles()
+        clearFloatingPositionStyles(wrapperEl)
         return
       }
 
-      companionLayerEl.classList.add("is-draggable")
-
-      if (!panelPosition) {
-        clearPanelPositionStyles()
-        companionLayerEl.style.right = "22px"
-        companionLayerEl.style.bottom = "22px"
+      if (!position) {
+        clearFloatingPositionStyles(wrapperEl)
+        wrapperEl.style.right = defaults.right
+        wrapperEl.style.bottom = defaults.bottom
+        wrapperEl.style.top = defaults.top || "auto"
         return
       }
 
-      const clamped = clampPanelPosition(panelPosition)
-      panelPosition = clamped
-      companionLayerEl.style.left = clamped.left + "px"
-      companionLayerEl.style.top = clamped.top + "px"
-      companionLayerEl.style.right = "auto"
-      companionLayerEl.style.bottom = "auto"
+      const clamped = clampFloatingPosition(position, shellEl)
+      wrapperEl.style.left = clamped.left + "px"
+      wrapperEl.style.top = clamped.top + "px"
+      wrapperEl.style.right = "auto"
+      wrapperEl.style.bottom = "auto"
+      return clamped
+    }
+
+    function applyPanelPositions() {
+      responsePosition = applyFloatingPosition(
+        responseWrapEl,
+        panelShellEl,
+        responsePosition,
+        { right: "22px", bottom: "auto", top: "24px" }
+      ) || responsePosition
+
+      composerPosition = applyFloatingPosition(
+        composerWrapEl,
+        composerShellEl,
+        composerPosition,
+        { right: "22px", bottom: "22px", top: "auto" }
+      ) || composerPosition
     }
 
     function updatePanelState() {
       panelShellEl.classList.toggle("minimized", !isPanelOpen)
+      responseWrapEl.classList.toggle("minimized", !isPanelOpen)
+      composerWrapEl.classList.toggle("minimized", !isPanelOpen)
       launcherBtnEl.classList.toggle("hidden", isPanelOpen)
       launcherBtnEl.setAttribute("aria-expanded", String(isPanelOpen))
       expandBtnEl.disabled = isPanelOpen
       minimizeBtnEl.disabled = !isPanelOpen
-      applyPanelPosition()
+      applyPanelPositions()
     }
 
     function updateSupportState() {
@@ -1111,7 +1209,7 @@
       }
     }
 
-    function startPanelDrag(event) {
+    function startPanelDrag(event, wrapperEl, shellEl, positionKey) {
       if (!isDesktopLayout() || !isPanelOpen || isBusy || isRecording) {
         return
       }
@@ -1120,15 +1218,18 @@
         return
       }
 
-      const rect = companionLayerEl.getBoundingClientRect()
+      const rect = wrapperEl.getBoundingClientRect()
       dragState = {
+        wrapperEl,
+        shellEl,
+        positionKey,
         offsetX: event.clientX - rect.left,
         offsetY: event.clientY - rect.top
       }
 
-      panelShellEl.classList.add("dragging")
-      companionLayerEl.style.right = "auto"
-      companionLayerEl.style.bottom = "auto"
+      shellEl.classList.add("dragging")
+      wrapperEl.style.right = "auto"
+      wrapperEl.style.bottom = "auto"
 
       window.addEventListener("pointermove", onPanelDrag)
       window.addEventListener("pointerup", stopPanelDrag)
@@ -1139,13 +1240,19 @@
         return
       }
 
-      panelPosition = clampPanelPosition({
+      const position = clampFloatingPosition({
         left: event.clientX - dragState.offsetX,
         top: event.clientY - dragState.offsetY
-      })
+      }, dragState.shellEl)
 
-      companionLayerEl.style.left = panelPosition.left + "px"
-      companionLayerEl.style.top = panelPosition.top + "px"
+      if (dragState.positionKey === "response") {
+        responsePosition = position
+      } else {
+        composerPosition = position
+      }
+
+      dragState.wrapperEl.style.left = position.left + "px"
+      dragState.wrapperEl.style.top = position.top + "px"
     }
 
     function stopPanelDrag() {
@@ -1153,11 +1260,17 @@
         return
       }
 
-      dragState = null
-      panelShellEl.classList.remove("dragging")
-      savePanelPosition()
+      dragState.shellEl.classList.remove("dragging")
+
+      if (dragState.positionKey === "response") {
+        saveFloatingPosition("tisha_response_position", responsePosition)
+      } else {
+        saveFloatingPosition("tisha_composer_position", composerPosition)
+      }
+
       window.removeEventListener("pointermove", onPanelDrag)
       window.removeEventListener("pointerup", stopPanelDrag)
+      dragState = null
     }
 
     function setStatus(message) {
@@ -1681,7 +1794,13 @@
       setPanelOpen(true)
     })
 
-    panelTopbarEl.addEventListener("pointerdown", startPanelDrag)
+    panelTopbarEl.addEventListener("pointerdown", (event) => {
+      startPanelDrag(event, responseWrapEl, panelShellEl, "response")
+    })
+
+    composerTopbarEl.addEventListener("pointerdown", (event) => {
+      startPanelDrag(event, composerWrapEl, composerShellEl, "composer")
+    })
 
     expandBtnEl.addEventListener("click", () => {
       setPanelOpen(true)
@@ -1716,11 +1835,15 @@
         updatePanelState()
       }
 
-      if (panelPosition) {
-        panelPosition = clampPanelPosition(panelPosition)
+      if (responsePosition) {
+        responsePosition = clampFloatingPosition(responsePosition, panelShellEl)
       }
 
-      applyPanelPosition()
+      if (composerPosition) {
+        composerPosition = clampFloatingPosition(composerPosition, composerShellEl)
+      }
+
+      applyPanelPositions()
     })
 
     if (conversationHistory.length > 0) {
