@@ -194,6 +194,10 @@
       box-shadow: 0 0 0 10px rgba(44, 36, 24, 0.24), 0 8px 28px rgba(0, 0, 0, 0.38);
     }
 
+    .launcher.speaking {
+      box-shadow: 0 0 0 10px rgba(193, 120, 23, 0.18), 0 10px 30px rgba(44, 36, 24, 0.42);
+    }
+
     .launcher.hidden {
       opacity: 0;
       transform: scale(0.82);
@@ -667,6 +671,12 @@
       animation: pulse 1.5s ease-out infinite;
     }
 
+    .recording-indicator.playing::before {
+      background: var(--gold);
+      box-shadow: 0 0 0 0 rgba(193, 120, 23, 0.28);
+      animation: pulse 1.5s ease-out infinite;
+    }
+
     .foot-note {
       max-width: 24ch;
     }
@@ -903,6 +913,7 @@
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
     let playbackToken = 0
+    let isAudioPlaying = false
     let panelMode = loadPanelMode()
     let isSupportOpen = loadSupportState()
     let responsePosition = loadFloatingPosition("tisha_response_position")
@@ -934,6 +945,17 @@
     launcherBtnEl.title = "TISHA ready"
     launcherBtnEl.querySelector(".launcher-mark").innerHTML = "&#10022;"
     panelShellEl.querySelector(".brand-mark").innerHTML = "&#10022;"
+    audioEl.addEventListener("play", () => updatePlaybackState(true))
+    audioEl.addEventListener("playing", () => updatePlaybackState(true))
+    audioEl.addEventListener("pause", () => {
+      if (!audioEl.ended && audioEl.currentTime > 0 && !audioEl.src) {
+        return
+      }
+
+      updatePlaybackState(false)
+    })
+    audioEl.addEventListener("ended", () => updatePlaybackState(false))
+    audioEl.addEventListener("emptied", () => updatePlaybackState(false))
 
     function loadPanelMode() {
       const stored = localStorage.getItem("tisha_panel_mode")
@@ -1197,11 +1219,22 @@
       updateControls()
     }
 
+    function updatePlaybackState(value) {
+      isAudioPlaying = value
+      launcherBtnEl.classList.toggle("speaking", isAudioPlaying)
+      recordingIndicatorEl.classList.toggle("playing", isAudioPlaying)
+
+      if (!isRecording) {
+        recordingIndicatorEl.textContent = isAudioPlaying ? "coach speaking" : "mic ready"
+      }
+    }
+
     function stopCurrentPlayback() {
       playbackToken += 1
       audioEl.pause()
       audioEl.currentTime = 0
       audioEl.src = ""
+      updatePlaybackState(false)
     }
 
     function updateSessionIndicator() {
@@ -1278,6 +1311,12 @@
       recordingIndicatorEl.classList.toggle("active", isRecording)
       minimizeBtnEl.disabled = panelMode === "orb"
       viewModeBtnEl.disabled = isBusy || isRecording
+
+      if (isRecording) {
+        recordingIndicatorEl.textContent = "recording"
+      } else if (!isAudioPlaying) {
+        recordingIndicatorEl.textContent = "mic ready"
+      }
     }
 
     function buildFetchError(error, endpoint) {
