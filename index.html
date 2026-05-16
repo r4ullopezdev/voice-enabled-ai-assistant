@@ -6,22 +6,24 @@
   <title>TISHA Trading Companion</title>
   <style>
     :root {
-      --bg: #f6f1e7;
-      --bg-deep: #eadfcd;
-      --surface: rgba(251, 246, 238, 0.94);
-      --surface-strong: rgba(255, 251, 245, 0.98);
-      --surface-muted: rgba(255, 248, 239, 0.72);
-      --line: rgba(73, 55, 46, 0.12);
-      --line-strong: rgba(73, 55, 46, 0.22);
-      --text: #21333b;
-      --text-soft: #6d6258;
-      --brand-ink: #0f3340;
-      --brand-green: #1d8f5a;
-      --brand-gold: #b78d4f;
-      --brand-cream: #fbf4ea;
-      --shadow-lg: 0 28px 80px rgba(33, 25, 22, 0.18);
-      --shadow-md: 0 18px 40px rgba(33, 25, 22, 0.12);
-      --shadow-sm: 0 10px 28px rgba(33, 25, 22, 0.08);
+      --cream: #f5f0e8;
+      --brown-dark: #2c2418;
+      --brown: #8b5e3c;
+      --gold: #c17817;
+      --gold-light: #d4941f;
+      --green: #4a7a3a;
+      --text: #1c1410;
+      --body: #3d2e1e;
+      --muted: #7a6a58;
+      --border: #ddd5c8;
+      --surface: rgba(255, 252, 247, 0.94);
+      --surface-strong: rgba(255, 252, 247, 0.98);
+      --surface-muted: rgba(245, 240, 232, 0.84);
+      --line: rgba(44, 36, 24, 0.12);
+      --line-strong: rgba(44, 36, 24, 0.22);
+      --shadow-lg: 0 28px 80px rgba(28, 20, 16, 0.16);
+      --shadow-md: 0 18px 40px rgba(28, 20, 16, 0.1);
+      --shadow-sm: 0 10px 28px rgba(28, 20, 16, 0.08);
       --radius-xl: 28px;
       --radius-lg: 20px;
       --radius-md: 16px;
@@ -40,12 +42,12 @@
     }
 
     body {
-      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      font-family: Georgia, "Times New Roman", serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(183, 141, 79, 0.22), transparent 28%),
-        radial-gradient(circle at right 20%, rgba(15, 51, 64, 0.1), transparent 30%),
-        linear-gradient(180deg, #f8f4ec 0%, #efe5d7 100%);
+        radial-gradient(circle at top left, rgba(212, 148, 31, 0.18), transparent 28%),
+        radial-gradient(circle at right 20%, rgba(44, 36, 24, 0.08), transparent 30%),
+        linear-gradient(180deg, var(--cream) 0%, #efe7db 100%);
       overflow-x: hidden;
     }
 
@@ -71,7 +73,7 @@
       height: 420px;
       top: -120px;
       right: -80px;
-      background: radial-gradient(circle, rgba(183, 141, 79, 0.15) 0%, rgba(183, 141, 79, 0) 70%);
+      background: radial-gradient(circle, rgba(193, 120, 23, 0.14) 0%, rgba(193, 120, 23, 0) 70%);
     }
 
     .workspace-shell::after {
@@ -79,7 +81,7 @@
       height: 380px;
       left: -120px;
       bottom: -100px;
-      background: radial-gradient(circle, rgba(15, 51, 64, 0.12) 0%, rgba(15, 51, 64, 0) 72%);
+      background: radial-gradient(circle, rgba(44, 36, 24, 0.1) 0%, rgba(44, 36, 24, 0) 72%);
     }
 
     .ambient-preview {
@@ -97,9 +99,9 @@
       width: fit-content;
       padding: 10px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(15, 51, 64, 0.1);
-      background: rgba(255, 249, 241, 0.78);
-      color: var(--brand-ink);
+      border: 1px solid var(--border);
+      background: rgba(255, 252, 247, 0.78);
+      color: var(--brown-dark);
       font-size: 0.82rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -111,8 +113,8 @@
       width: 8px;
       height: 8px;
       border-radius: 999px;
-      background: var(--brand-green);
-      box-shadow: 0 0 0 6px rgba(29, 143, 90, 0.12);
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(74, 122, 58, 0.12);
     }
 
     .ambient-preview h1 {
@@ -121,13 +123,13 @@
       font-size: clamp(3rem, 8vw, 6rem);
       line-height: 0.92;
       letter-spacing: -0.05em;
-      color: var(--brand-ink);
+      color: var(--brown-dark);
     }
 
     .ambient-preview p {
       margin: 0;
       max-width: 46ch;
-      color: var(--text-soft);
+      color: var(--body);
       font-size: 1.05rem;
       line-height: 1.8;
     }
@@ -142,9 +144,9 @@
     .ambient-card {
       min-width: 150px;
       padding: 16px 18px;
-      border: 1px solid rgba(15, 51, 64, 0.08);
+      border: 1px solid var(--border);
       border-radius: 18px;
-      background: rgba(255, 250, 244, 0.68);
+      background: rgba(255, 252, 247, 0.72);
       box-shadow: var(--shadow-sm);
       backdrop-filter: blur(10px);
     }
@@ -152,13 +154,13 @@
     .ambient-card strong {
       display: block;
       margin-bottom: 6px;
-      color: var(--brand-ink);
+      color: var(--brown-dark);
       font-size: 0.96rem;
       font-weight: 600;
     }
 
     .ambient-card span {
-      color: var(--text-soft);
+      color: var(--muted);
       font-size: 0.94rem;
       line-height: 1.6;
     }
@@ -177,26 +179,26 @@
       position: absolute;
       right: 6px;
       bottom: 6px;
-      width: 84px;
-      height: 84px;
+      width: 58px;
+      height: 58px;
       border: 0;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0;
-      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 36%), linear-gradient(160deg, #123d49 0%, #0f3340 72%);
-      color: #fdf6ea;
-      box-shadow: 0 28px 48px rgba(15, 51, 64, 0.28);
+      border: 1.5px solid rgba(193, 120, 23, 0.4);
+      background: var(--brown-dark);
+      color: var(--gold-light);
+      box-shadow: 0 0 0 8px rgba(44, 36, 24, 0.2), 0 6px 24px rgba(0, 0, 0, 0.35);
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.24s ease, opacity 0.24s ease, box-shadow 0.24s ease;
-      overflow: hidden;
     }
 
     .launcher:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 32px 54px rgba(15, 51, 64, 0.32);
+      transform: scale(1.07);
+      box-shadow: 0 0 0 10px rgba(44, 36, 24, 0.24), 0 8px 28px rgba(0, 0, 0, 0.38);
     }
 
     .launcher.hidden {
@@ -205,23 +207,22 @@
       pointer-events: none;
     }
 
-    .launcher::after {
-      content: "Expand";
-      position: absolute;
-      bottom: -34px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: var(--brand-ink);
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
+    .launcher-mark,
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--brown-dark);
+      color: var(--gold-light);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1;
     }
 
-    .launcher svg {
-      width: 66px;
-      height: 66px;
-      display: block;
+    .launcher-mark {
+      width: 100%;
+      height: 100%;
+      font-size: 22px;
     }
 
     .panel-shell {
@@ -229,10 +230,10 @@
       max-width: 100%;
       height: var(--panel-height);
       max-height: calc(100vh - 32px);
-      border: 1px solid rgba(15, 51, 64, 0.12);
+      border: 1px solid var(--border);
       border-radius: 30px;
       background:
-        linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(248, 241, 231, 0.96) 100%);
+        linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 240, 232, 0.96) 100%);
       box-shadow: var(--shadow-lg);
       backdrop-filter: blur(18px);
       overflow: hidden;
@@ -252,10 +253,10 @@
     .panel-topbar {
       position: relative;
       padding: 18px 20px 14px;
-      border-bottom: 1px solid rgba(15, 51, 64, 0.08);
+      border-bottom: 1px solid var(--border);
       background:
-        radial-gradient(circle at top right, rgba(183, 141, 79, 0.18), transparent 34%),
-        linear-gradient(180deg, rgba(255, 251, 245, 0.96) 0%, rgba(250, 244, 234, 0.94) 100%);
+        radial-gradient(circle at top right, rgba(212, 148, 31, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 240, 232, 0.94) 100%);
     }
 
     .panel-topbar::after {
@@ -263,7 +264,7 @@
       position: absolute;
       inset: auto 20px 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(183, 141, 79, 0.28) 50%, transparent 100%);
+      background: linear-gradient(90deg, transparent 0%, rgba(193, 120, 23, 0.28) 50%, transparent 100%);
     }
 
     .topbar-row {
@@ -284,8 +285,8 @@
       width: 52px;
       height: 52px;
       flex: 0 0 auto;
-      border-radius: 18px;
-      box-shadow: 0 14px 30px rgba(15, 51, 64, 0.16);
+      box-shadow: 0 14px 30px rgba(44, 36, 24, 0.16);
+      font-size: 22px;
     }
 
     .brand-copy {
@@ -299,7 +300,7 @@
     }
 
     .eyebrow {
-      color: var(--brand-gold);
+      color: var(--gold);
       font-size: 0.74rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
@@ -310,13 +311,13 @@
       font-size: 1.4rem;
       line-height: 1;
       letter-spacing: -0.03em;
-      color: var(--brand-ink);
+      color: var(--brown-dark);
     }
 
     .brand-copy span {
       display: block;
       margin-top: 5px;
-      color: var(--text-soft);
+      color: var(--muted);
       font-size: 0.9rem;
       line-height: 1.45;
     }
@@ -331,10 +332,10 @@
 
     .ghost-btn,
     .text-btn {
-      border: 1px solid rgba(15, 51, 64, 0.1);
+      border: 1px solid var(--border);
       border-radius: 999px;
       background: rgba(255, 253, 249, 0.9);
-      color: var(--brand-ink);
+      color: var(--brown-dark);
       box-shadow: none;
       cursor: pointer;
       transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
@@ -355,8 +356,12 @@
     .ghost-btn:hover,
     .text-btn:hover {
       transform: translateY(-1px);
-      border-color: rgba(15, 51, 64, 0.18);
+      border-color: rgba(44, 36, 24, 0.18);
       background: rgba(255, 251, 244, 1);
+    }
+
+    .sr-hidden {
+      display: none !important;
     }
 
     .session-strip {
@@ -375,13 +380,13 @@
       padding: 10px 14px;
       border-radius: 999px;
       font-size: 0.86rem;
-      color: var(--brand-ink);
-      background: rgba(15, 51, 64, 0.08);
+      color: var(--brown-dark);
+      background: rgba(44, 36, 24, 0.08);
     }
 
     .status-pill[data-state="active"] {
-      background: rgba(29, 143, 90, 0.14);
-      color: #165839;
+      background: rgba(74, 122, 58, 0.14);
+      color: #355a2a;
     }
 
     .status-pill::before {
@@ -391,7 +396,7 @@
       border-radius: 999px;
       background: currentColor;
       opacity: 0.85;
-      box-shadow: 0 0 0 6px rgba(29, 143, 90, 0.08);
+      box-shadow: 0 0 0 6px rgba(74, 122, 58, 0.08);
     }
 
     .panel-body {
@@ -401,7 +406,7 @@
       min-height: 0;
       flex: 1 1 auto;
       background:
-        linear-gradient(180deg, rgba(255, 252, 247, 0.42) 0%, rgba(248, 242, 232, 0.62) 100%);
+        linear-gradient(180deg, rgba(255, 252, 247, 0.42) 0%, rgba(245, 240, 232, 0.62) 100%);
     }
 
     .support-card,
@@ -421,14 +426,14 @@
     }
 
     .support-card strong {
-      color: var(--brand-ink);
+      color: var(--brown-dark);
       font-size: 0.96rem;
       font-weight: 600;
     }
 
     .support-card p {
       margin: 0;
-      color: var(--text-soft);
+      color: var(--muted);
       font-size: 0.92rem;
       line-height: 1.7;
     }
@@ -446,7 +451,7 @@
       justify-content: space-between;
       gap: 16px;
       padding: 16px 18px 14px;
-      border-bottom: 1px solid rgba(15, 51, 64, 0.08);
+      border-bottom: 1px solid rgba(44, 36, 24, 0.08);
     }
 
     .section-head h3 {
@@ -454,12 +459,12 @@
       font-size: 0.92rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-soft);
+      color: var(--muted);
     }
 
     .status-text {
       margin: 0;
-      color: var(--brand-ink);
+      color: var(--brown-dark);
       font-size: 0.84rem;
       line-height: 1.4;
       text-align: right;
@@ -475,13 +480,13 @@
     #replyBox {
       margin: 0;
       white-space: pre-wrap;
-      color: #24363f;
+      color: var(--body);
       font-size: 1rem;
       line-height: 1.85;
     }
 
     .response-placeholder {
-      color: rgba(33, 51, 59, 0.52);
+      color: rgba(61, 46, 30, 0.55);
       font-style: italic;
     }
 
@@ -497,25 +502,25 @@
 
     .input-wrap input {
       width: 100%;
-      border: 1px solid rgba(15, 51, 64, 0.12);
-      border-radius: 18px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 17px 18px;
       font: inherit;
       font-size: 1rem;
       line-height: 1.4;
-      color: var(--brand-ink);
+      color: var(--brown-dark);
       background: rgba(255, 255, 255, 0.88);
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
 
     .input-wrap input::placeholder {
-      color: #8f8378;
+      color: var(--muted);
     }
 
     .input-wrap input:focus {
-      border-color: rgba(183, 141, 79, 0.58);
-      box-shadow: 0 0 0 4px rgba(183, 141, 79, 0.12);
+      border-color: rgba(193, 120, 23, 0.58);
+      box-shadow: 0 0 0 4px rgba(193, 120, 23, 0.12);
       transform: translateY(-1px);
     }
 
@@ -529,30 +534,33 @@
     .secondary-btn,
     .tertiary-btn {
       border: 0;
-      border-radius: 16px;
-      padding: 14px 16px;
+      height: 44px;
+      border-radius: 8px;
+      padding: 0 16px;
       font: inherit;
       font-size: 0.96rem;
+      font-weight: 600;
       cursor: pointer;
       transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
     }
 
     .primary-btn {
-      color: #fcf6ed;
-      background: linear-gradient(135deg, #0f3340 0%, #174756 100%);
-      box-shadow: 0 18px 28px rgba(15, 51, 64, 0.2);
+      color: #fff;
+      background: var(--gold);
+      box-shadow: 0 12px 20px rgba(193, 120, 23, 0.2);
     }
 
     .secondary-btn {
-      color: #f7f0e6;
-      background: linear-gradient(135deg, #1d8f5a 0%, #186e47 100%);
-      box-shadow: 0 18px 28px rgba(29, 143, 90, 0.2);
+      color: #fff;
+      background: var(--brown-dark);
+      box-shadow: 0 12px 20px rgba(44, 36, 24, 0.18);
     }
 
     .tertiary-btn {
-      color: var(--brand-ink);
-      background: linear-gradient(135deg, #ecd9bb 0%, #e4c492 100%);
-      box-shadow: 0 18px 28px rgba(183, 141, 79, 0.18);
+      color: var(--brown-dark);
+      border: 1.5px solid var(--brown-dark);
+      background: transparent;
+      box-shadow: none;
     }
 
     .primary-btn:hover:enabled,
@@ -578,32 +586,36 @@
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
-      color: var(--text-soft);
+      color: var(--muted);
       font-size: 0.82rem;
       line-height: 1.6;
     }
 
     .recording-indicator {
-      display: none;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: #8b2f24;
-      font-size: 0.82rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
+      color: var(--muted);
+      font: 11px/1.2 "Courier New", Courier, monospace;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
     }
 
     .recording-indicator.active {
-      display: inline-flex;
+      color: var(--brown-dark);
     }
 
     .recording-indicator::before {
       content: "";
-      width: 9px;
-      height: 9px;
+      width: 6px;
+      height: 6px;
       border-radius: 999px;
-      background: #c34736;
-      box-shadow: 0 0 0 0 rgba(195, 71, 54, 0.35);
+      background: var(--green);
+      box-shadow: none;
+    }
+
+    .recording-indicator.active::before {
+      box-shadow: 0 0 0 0 rgba(74, 122, 58, 0.35);
       animation: pulse 1.5s ease-out infinite;
     }
 
@@ -617,8 +629,8 @@
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(15, 51, 64, 0.06);
-      color: var(--brand-ink);
+      background: rgba(44, 36, 24, 0.06);
+      color: var(--brown-dark);
     }
 
     .behavior-note::before {
@@ -626,7 +638,23 @@
       width: 7px;
       height: 7px;
       border-radius: 999px;
-      background: var(--brand-green);
+      background: var(--green);
+    }
+
+    .hero-signoff {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .hero-signoff em {
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .hero-signoff span {
+      color: var(--muted);
+      font: 11px/1.4 "Courier New", Courier, monospace;
     }
 
     @keyframes pulse {
@@ -635,7 +663,7 @@
       }
 
       70% {
-        box-shadow: 0 0 0 12px rgba(195, 71, 54, 0);
+        box-shadow: 0 0 0 12px rgba(74, 122, 58, 0);
       }
 
       100% {
@@ -649,7 +677,7 @@
       }
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 640px) {
       .workspace-shell {
         padding: 18px;
       }
@@ -669,42 +697,38 @@
       }
 
       .companion-layer {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        justify-content: center;
+        position: static;
+        margin-top: 22px;
+        display: block;
+        pointer-events: auto;
       }
 
       .launcher {
-        right: 20px;
+        position: fixed;
+        right: 18px;
         bottom: 18px;
       }
 
       .panel-shell {
-        width: calc(100vw - 16px);
-        height: calc(100vh - 16px);
+        width: 100%;
+        height: auto;
         max-height: none;
-        border-radius: 26px 26px 0 0;
-      }
-
-      .panel-shell.minimized {
-        transform: translateY(100%);
-      }
-
-      .topbar-row,
-      .session-strip,
-      .composer-actions,
-      .composer-foot {
-        grid-template-columns: 1fr;
+        min-height: 0;
+        border-radius: 24px;
       }
 
       .topbar-row,
       .composer-foot {
         display: grid;
+        grid-template-columns: 1fr;
       }
 
       .panel-actions {
         justify-content: flex-start;
+      }
+
+      .composer-actions {
+        grid-template-columns: 1fr;
       }
 
       .response-scroll {
@@ -725,10 +749,6 @@
         border-radius: 18px;
       }
 
-      .composer-actions {
-        grid-template-columns: 1fr;
-      }
-
       .ambient-preview p {
         font-size: 1rem;
       }
@@ -740,7 +760,7 @@
     <section class="ambient-preview" aria-hidden="true">
       <div class="preview-chip">
         <span class="preview-chip-dot"></span>
-        TISHA Companion Preview
+        TISHA · Companion
       </div>
       <h1>Calm execution, right beside the chart.</h1>
       <p>
@@ -761,58 +781,32 @@
           <span>Text, microphone, and spoken responses remain fully available.</span>
         </div>
       </div>
+      <div class="hero-signoff">
+        <em>Built for traders. By traders.</em>
+        <span>&mdash; Norman, Founder of TISHA</span>
+      </div>
     </section>
 
     <div class="companion-layer">
-      <button id="launcherBtn" class="launcher" type="button" aria-label="Expand TISHA companion" aria-expanded="false">
-        <svg viewBox="0 0 128 128" aria-hidden="true">
-          <rect width="128" height="128" rx="36" fill="#0F3340"></rect>
-          <rect x="73" y="23" width="9" height="31" fill="#1D8F5A"></rect>
-          <rect x="76.5" y="16" width="2" height="10" fill="#1D8F5A"></rect>
-          <rect x="76.5" y="52" width="2" height="9" fill="#1D8F5A"></rect>
-          <rect x="58" y="37" width="8" height="21" fill="#1D8F5A"></rect>
-          <rect x="61" y="31" width="2" height="8" fill="#1D8F5A"></rect>
-          <rect x="61" y="56" width="2" height="8" fill="#1D8F5A"></rect>
-          <rect x="46" y="51" width="7" height="16" fill="#1D8F5A"></rect>
-          <rect x="48.5" y="46" width="2" height="7" fill="#1D8F5A"></rect>
-          <rect x="48.5" y="65" width="2" height="6" fill="#1D8F5A"></rect>
-          <rect x="37" y="62" width="6" height="11" fill="#1D8F5A"></rect>
-          <rect x="39" y="58" width="2" height="5" fill="#1D8F5A"></rect>
-          <rect x="39" y="71" width="2" height="4" fill="#1D8F5A"></rect>
-          <path d="M36.8669 95V89.5892H47.2746V95H44.1306V111H40.0109V95H36.8669Z" fill="#FAF5EE"></path>
-        </svg>
+      <button id="launcherBtn" class="launcher" type="button" aria-label="Open TISHA companion" aria-expanded="false" title="TISHA · ready">
+        <span class="launcher-mark" aria-hidden="true">✦</span>
       </button>
 
       <aside id="panelShell" class="panel-shell" aria-live="polite">
         <header class="panel-topbar">
           <div class="topbar-row">
             <div class="brand-block">
-              <svg class="brand-mark" viewBox="0 0 128 128" aria-hidden="true">
-                <rect width="128" height="128" rx="36" fill="#0F3340"></rect>
-                <rect x="73" y="23" width="9" height="31" fill="#1D8F5A"></rect>
-                <rect x="76.5" y="16" width="2" height="10" fill="#1D8F5A"></rect>
-                <rect x="76.5" y="52" width="2" height="9" fill="#1D8F5A"></rect>
-                <rect x="58" y="37" width="8" height="21" fill="#1D8F5A"></rect>
-                <rect x="61" y="31" width="2" height="8" fill="#1D8F5A"></rect>
-                <rect x="61" y="56" width="2" height="8" fill="#1D8F5A"></rect>
-                <rect x="46" y="51" width="7" height="16" fill="#1D8F5A"></rect>
-                <rect x="48.5" y="46" width="2" height="7" fill="#1D8F5A"></rect>
-                <rect x="48.5" y="65" width="2" height="6" fill="#1D8F5A"></rect>
-                <rect x="37" y="62" width="6" height="11" fill="#1D8F5A"></rect>
-                <rect x="39" y="58" width="2" height="5" fill="#1D8F5A"></rect>
-                <rect x="39" y="71" width="2" height="4" fill="#1D8F5A"></rect>
-                <path d="M36.8669 95V89.5892H47.2746V95H44.1306V111H40.0109V95H36.8669Z" fill="#FAF5EE"></path>
-              </svg>
+              <span class="brand-mark" aria-hidden="true">✦</span>
               <div class="brand-copy">
                 <p class="eyebrow">Trading Companion</p>
                 <h2>TISHA</h2>
-                <span>Real-time regulation support for traders in live conditions.</span>
+                <span>Your real-time emotional coach &mdash; one click away.</span>
               </div>
             </div>
 
             <div class="panel-actions">
-              <button id="expandBtn" class="text-btn" type="button">Expand</button>
-              <button id="minimizeBtn" class="ghost-btn" type="button">Minimize</button>
+              <button id="expandBtn" class="text-btn sr-hidden" type="button" tabindex="-1" aria-hidden="true">Expand</button>
+              <button id="minimizeBtn" class="ghost-btn" type="button">Minimize &#9472;</button>
             </div>
           </div>
 
@@ -841,7 +835,7 @@
 
           <section class="composer-card">
             <div class="input-wrap">
-              <input id="msg" placeholder="Describe what you're feeling or thinking right now..." />
+              <input id="msg" placeholder="What's happening right now?" />
             </div>
 
             <div class="composer-actions">
@@ -852,7 +846,7 @@
 
             <div class="composer-foot">
               <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
-              <div id="recordingIndicator" class="recording-indicator">Recording...</div>
+              <div id="recordingIndicator" class="recording-indicator">mic ready</div>
               <div class="behavior-note">Audio playback remains active in this panel</div>
             </div>
           </section>
