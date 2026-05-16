@@ -131,9 +131,7 @@
     }
 
     .workspace-shell.panel-state-orb .companion-layer {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
     }
 
     .floating-wrap {
@@ -184,9 +182,9 @@
     }
 
     .workspace-shell.panel-state-orb .launcher {
-      position: relative;
-      right: auto;
-      bottom: auto;
+      position: absolute;
+      right: 22px;
+      bottom: 22px;
     }
 
     .launcher:hover {
@@ -489,6 +487,13 @@
       max-height: min(80vh, 980px);
     }
 
+    .response-card.collapsed {
+      resize: none;
+      min-height: 0;
+      max-height: none;
+      overflow: visible;
+    }
+
     .panel-shell.compact .support-card,
     .panel-shell.compact .response-card {
       display: none;
@@ -511,6 +516,23 @@
       color: var(--muted);
     }
 
+    .section-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .section-toggle {
+      justify-self: start;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--brown);
+      font: 11px/1.2 "Courier New", Courier, monospace;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
     .status-text {
       margin: 0;
       color: var(--brown-dark);
@@ -526,6 +548,10 @@
       overflow-y: auto;
       overflow-x: hidden;
       scroll-behavior: smooth;
+    }
+
+    .response-card.collapsed .response-scroll {
+      display: none;
     }
 
     #replyBox {
@@ -867,7 +893,10 @@
 
           <section class="response-card">
             <div class="section-head">
-              <h3>Session Guidance</h3>
+              <div class="section-title">
+                <h3>Session Guidance</h3>
+                <button id="guidanceToggle" class="section-toggle" type="button">Show Session Guidance</button>
+              </div>
               <p id="status" class="status-text">TISHA ready.</p>
             </div>
             <div id="replyScroll" class="response-scroll">
@@ -916,7 +945,10 @@
     let isAudioPlaying = false
     let panelMode = loadPanelMode()
     let isSupportOpen = loadSupportState()
+    let isGuidanceOpen = false
     let responsePosition = loadFloatingPosition("tisha_response_position")
+    let orbPosition = loadFloatingPosition("tisha_orb_position")
+    let orbDraggedAt = 0
     let dragState = null
 
     const statusEl = document.getElementById("status")
@@ -937,6 +969,8 @@
     const supportBodyEl = document.getElementById("supportBody")
     const supportToggleEl = document.getElementById("supportToggle")
     const supportToggleLabelEl = document.getElementById("supportToggleLabel")
+    const responseCardEl = document.querySelector(".response-card")
+    const guidanceToggleEl = document.getElementById("guidanceToggle")
     const minimizeBtnEl = document.getElementById("minimizeBtn")
     const viewModeBtnEl = document.getElementById("viewModeBtn")
     const audioEl = new Audio()
@@ -1054,6 +1088,25 @@
       wrapperEl.style.bottom = ""
     }
 
+    function clearOrbPositionStyles() {
+      launcherBtnEl.style.left = ""
+      launcherBtnEl.style.top = ""
+      launcherBtnEl.style.right = ""
+      launcherBtnEl.style.bottom = ""
+    }
+
+    function clampOrbPosition(position) {
+      const orbSize = 58
+      const margin = 12
+      const maxLeft = Math.max(margin, window.innerWidth - orbSize - margin)
+      const maxTop = Math.max(margin, window.innerHeight - orbSize - margin)
+
+      return {
+        left: Math.min(Math.max(margin, position.left), maxLeft),
+        top: Math.min(Math.max(margin, position.top), maxTop)
+      }
+    }
+
     function applyFloatingPosition(wrapperEl, shellEl, position, defaults) {
       if (!isDesktopLayout() || !isPanelVisible()) {
         clearFloatingPositionStyles(wrapperEl)
@@ -1083,6 +1136,18 @@
         responsePosition,
         { right: "22px", bottom: "22px", top: "auto" }
       ) || responsePosition
+
+      if (!isDesktopLayout() || panelMode !== "orb" || !orbPosition) {
+        clearOrbPositionStyles()
+        return
+      }
+
+      const clamped = clampOrbPosition(orbPosition)
+      launcherBtnEl.style.left = clamped.left + "px"
+      launcherBtnEl.style.top = clamped.top + "px"
+      launcherBtnEl.style.right = "auto"
+      launcherBtnEl.style.bottom = "auto"
+      orbPosition = clamped
     }
 
     function updatePanelState() {
@@ -1108,16 +1173,34 @@
       supportToggleLabelEl.textContent = isSupportOpen ? "Hide" : "Show"
     }
 
+    function updateGuidanceState() {
+      responseCardEl.classList.toggle("collapsed", !isGuidanceOpen)
+      guidanceToggleEl.setAttribute("aria-expanded", String(isGuidanceOpen))
+      guidanceToggleEl.textContent = isGuidanceOpen ? "Hide Session Guidance" : "Show Session Guidance"
+    }
+
     function setSupportOpen(value) {
       isSupportOpen = value
       saveSupportState()
       updateSupportState()
     }
 
+    function setGuidanceOpen(value) {
+      isGuidanceOpen = value
+      updateGuidanceState()
+    }
+
     function setPanelMode(nextMode) {
+      const previousMode = panelMode
       panelMode = nextMode
       savePanelMode()
+
+      if (previousMode === "orb" && nextMode !== "orb") {
+        isGuidanceOpen = false
+      }
+
       updatePanelState()
+      updateGuidanceState()
 
       if (isPanelVisible()) {
         window.setTimeout(() => {
@@ -1150,6 +1233,26 @@
       }, 30)
     }
 
+    function startOrbDrag(event) {
+      if (!isDesktopLayout() || panelMode !== "orb") {
+        return
+      }
+
+      const rect = launcherBtnEl.getBoundingClientRect()
+      dragState = {
+        kind: "orb",
+        wrapperEl: launcherBtnEl,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top,
+        moved: false
+      }
+
+      launcherBtnEl.style.right = "auto"
+      launcherBtnEl.style.bottom = "auto"
+      window.addEventListener("pointermove", onPanelDrag)
+      window.addEventListener("pointerup", stopPanelDrag)
+    }
+
     function startPanelDrag(event, wrapperEl, shellEl, positionKey) {
       if (!isDesktopLayout() || !isPanelVisible() || isBusy || isRecording) {
         return
@@ -1161,11 +1264,13 @@
 
       const rect = wrapperEl.getBoundingClientRect()
       dragState = {
+        kind: "panel",
         wrapperEl,
         shellEl,
         positionKey,
         offsetX: event.clientX - rect.left,
-        offsetY: event.clientY - rect.top
+        offsetY: event.clientY - rect.top,
+        moved: false
       }
 
       shellEl.classList.add("dragging")
@@ -1181,6 +1286,19 @@
         return
       }
 
+      if (dragState.kind === "orb") {
+        const position = clampOrbPosition({
+          left: event.clientX - dragState.offsetX,
+          top: event.clientY - dragState.offsetY
+        })
+
+        orbPosition = position
+        dragState.moved = true
+        dragState.wrapperEl.style.left = position.left + "px"
+        dragState.wrapperEl.style.top = position.top + "px"
+        return
+      }
+
       const position = clampFloatingPosition({
         left: event.clientX - dragState.offsetX,
         top: event.clientY - dragState.offsetY
@@ -1190,12 +1308,28 @@
         responsePosition = position
       }
 
+      dragState.moved = true
       dragState.wrapperEl.style.left = position.left + "px"
       dragState.wrapperEl.style.top = position.top + "px"
     }
 
     function stopPanelDrag() {
       if (!dragState) {
+        return
+      }
+
+      if (dragState.kind === "orb") {
+        if (orbPosition) {
+          saveFloatingPosition("tisha_orb_position", orbPosition)
+        }
+
+        if (dragState.moved) {
+          orbDraggedAt = Date.now()
+        }
+
+        window.removeEventListener("pointermove", onPanelDrag)
+        window.removeEventListener("pointerup", stopPanelDrag)
+        dragState = null
         return
       }
 
@@ -1745,7 +1879,15 @@
     }
 
     launcherBtnEl.addEventListener("click", () => {
+      if (Date.now() - orbDraggedAt < 250) {
+        return
+      }
+
       setPanelMode("full")
+    })
+
+    launcherBtnEl.addEventListener("pointerdown", (event) => {
+      startOrbDrag(event)
     })
 
     panelTopbarEl.addEventListener("pointerdown", (event) => {
@@ -1766,6 +1908,10 @@
       setSupportOpen(!isSupportOpen)
     })
 
+    guidanceToggleEl.addEventListener("click", () => {
+      setGuidanceOpen(!isGuidanceOpen)
+    })
+
     msgEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault()
@@ -1784,6 +1930,10 @@
         responsePosition = clampFloatingPosition(responsePosition, panelShellEl)
       }
 
+      if (orbPosition) {
+        orbPosition = clampOrbPosition(orbPosition)
+      }
+
       applyPanelPositions()
     })
 
@@ -1796,6 +1946,7 @@
 
     updateSessionIndicator()
     updateSupportState()
+    updateGuidanceState()
     updatePanelState()
     updateControls()
 
