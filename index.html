@@ -84,6 +84,7 @@
     }
 
     .overlay-host {
+      display: none;
       position: fixed;
       left: 24px;
       bottom: 24px;
@@ -124,36 +125,41 @@
 
     .companion-layer {
       position: fixed;
-      right: 22px;
-      bottom: 22px;
+      inset: 0;
       z-index: 20;
-      display: flex;
-      justify-content: flex-end;
       pointer-events: none;
+    }
+
+    .workspace-shell.panel-state-orb .companion-layer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .floating-wrap {
       position: fixed;
+      right: 22px;
+      bottom: 22px;
       z-index: 19;
+      width: min(100%, var(--panel-width));
       pointer-events: auto;
+      transition: opacity 0.22s ease, transform 0.22s ease;
     }
 
-    .floating-wrap.minimized {
+    .response-wrap {
+      transform-origin: bottom right;
+    }
+
+    .workspace-shell.panel-state-orb .response-wrap {
       opacity: 0;
       transform: translateY(18px) scale(0.92);
       pointer-events: none;
     }
 
-    .response-wrap {
-      right: 22px;
-      top: 24px;
-      width: min(100%, var(--panel-width));
-    }
-
-    .composer-wrap {
-      right: 22px;
-      bottom: 22px;
-      width: min(100%, var(--panel-width));
+    .workspace-shell:not(.panel-state-orb) .launcher {
+      opacity: 0;
+      transform: scale(0.82);
+      pointer-events: none;
     }
 
     .launcher {
@@ -175,6 +181,12 @@
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.24s ease, opacity 0.24s ease, box-shadow 0.24s ease;
+    }
+
+    .workspace-shell.panel-state-orb .launcher {
+      position: relative;
+      right: auto;
+      bottom: auto;
     }
 
     .launcher:hover {
@@ -225,6 +237,12 @@
       pointer-events: auto;
     }
 
+    .panel-shell.compact {
+      height: auto;
+      min-height: 0;
+      max-height: calc(100vh - 32px);
+    }
+
     .panel-topbar {
       position: relative;
       padding: 16px 18px 12px;
@@ -238,45 +256,6 @@
 
     .panel-shell.dragging .panel-topbar {
       cursor: grabbing;
-    }
-
-    .composer-shell {
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 240, 232, 0.94) 100%);
-      box-shadow: var(--shadow-lg);
-      backdrop-filter: blur(18px);
-      overflow: hidden;
-    }
-
-    .composer-shell.dragging .composer-topbar {
-      cursor: grabbing;
-    }
-
-    .composer-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px 10px;
-      border-bottom: 1px solid rgba(44, 36, 24, 0.08);
-      background: rgba(255, 252, 247, 0.88);
-      cursor: grab;
-      user-select: none;
-    }
-
-    .composer-topbar strong {
-      color: var(--brown-dark);
-      font-size: 0.88rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .composer-topbar span {
-      color: var(--muted);
-      font: 11px/1.2 "Courier New", Courier, monospace;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
     }
 
     .panel-topbar::after {
@@ -430,6 +409,10 @@
         linear-gradient(180deg, rgba(255, 252, 247, 0.42) 0%, rgba(245, 240, 232, 0.62) 100%);
     }
 
+    .panel-shell.compact .panel-body {
+      grid-template-rows: auto;
+    }
+
     .support-card,
     .response-card,
     .composer-card {
@@ -500,6 +483,11 @@
       resize: vertical;
       min-height: 540px;
       max-height: min(80vh, 980px);
+    }
+
+    .panel-shell.compact .support-card,
+    .panel-shell.compact .response-card {
+      display: none;
     }
 
     .section-head {
@@ -722,8 +710,6 @@
 
       .companion-layer {
         position: static;
-        margin-top: 0;
-        display: block;
         pointer-events: auto;
       }
 
@@ -731,15 +717,6 @@
         position: static;
         width: auto;
         margin-top: 14px;
-      }
-
-      .response-wrap,
-      .composer-wrap {
-        width: auto;
-      }
-
-      .floating-wrap.minimized {
-        display: none;
       }
 
       .launcher {
@@ -761,10 +738,6 @@
         max-height: none;
         min-height: 0;
         border-radius: 24px;
-      }
-
-      .composer-shell {
-        width: 100%;
       }
 
       .response-card {
@@ -859,7 +832,7 @@
             </div>
 
             <div class="panel-actions">
-              <button id="expandBtn" class="text-btn sr-hidden" type="button" tabindex="-1" aria-hidden="true">Expand</button>
+              <button id="viewModeBtn" class="text-btn" type="button">Quick Controls</button>
               <button id="minimizeBtn" class="ghost-btn" type="button">Minimize &#9472;</button>
             </div>
           </div>
@@ -891,34 +864,26 @@
               <p id="replyBox" class="response-placeholder">Guidance will appear here once the session begins.</p>
             </div>
           </section>
+
+          <section class="composer-card">
+            <div class="input-wrap">
+              <input id="msg" placeholder="What's happening right now?" />
+            </div>
+
+            <div class="composer-actions">
+              <button id="sendBtn" class="primary-btn" type="button" onclick="send()">Send</button>
+              <button id="micBtn" class="secondary-btn" type="button" onclick="toggleMic()">Speak</button>
+              <button id="resetBtn" class="tertiary-btn" type="button" onclick="resetConversation()">New Session</button>
+            </div>
+
+            <div class="composer-foot">
+              <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
+              <div id="recordingIndicator" class="recording-indicator">mic ready</div>
+              <div class="behavior-note">Audio playback remains active in this panel</div>
+            </div>
+          </section>
         </div>
       </aside>
-    </div>
-
-    <div id="composerWrap" class="floating-wrap composer-wrap">
-      <section id="composerShell" class="composer-shell">
-        <div id="composerTopbar" class="composer-topbar">
-          <strong>Response Controls</strong>
-          <span>Drag</span>
-        </div>
-        <section class="composer-card">
-          <div class="input-wrap">
-            <input id="msg" placeholder="What's happening right now?" />
-          </div>
-
-          <div class="composer-actions">
-            <button id="sendBtn" class="primary-btn" type="button" onclick="send()">Send</button>
-            <button id="micBtn" class="secondary-btn" type="button" onclick="toggleMic()">Speak</button>
-            <button id="resetBtn" class="tertiary-btn" type="button" onclick="resetConversation()">New Session</button>
-          </div>
-
-          <div class="composer-foot">
-            <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
-            <div id="recordingIndicator" class="recording-indicator">mic ready</div>
-            <div class="behavior-note">Audio playback remains active in this panel</div>
-          </div>
-        </section>
-      </section>
     </div>
   </div>
 
@@ -938,10 +903,9 @@
     let lastMode = localStorage.getItem("tdt_last_mode") || null
     let conversationHistory = loadConversationHistory()
     let playbackToken = 0
-    let isPanelOpen = loadPanelState()
+    let panelMode = loadPanelMode()
     let isSupportOpen = loadSupportState()
     let responsePosition = loadFloatingPosition("tisha_response_position")
-    let composerPosition = loadFloatingPosition("tisha_composer_position")
     let dragState = null
 
     const statusEl = document.getElementById("status")
@@ -955,37 +919,30 @@
     const recordingIndicatorEl = document.getElementById("recordingIndicator")
     const companionLayerEl = document.querySelector(".companion-layer")
     const responseWrapEl = document.getElementById("responseWrap")
-    const composerWrapEl = document.getElementById("composerWrap")
     const launcherBtnEl = document.getElementById("launcherBtn")
     const panelTopbarEl = document.querySelector(".panel-topbar")
     const panelShellEl = document.getElementById("panelShell")
-    const composerShellEl = document.getElementById("composerShell")
-    const composerTopbarEl = document.getElementById("composerTopbar")
     const supportCardEl = document.getElementById("supportCard")
     const supportBodyEl = document.getElementById("supportBody")
     const supportToggleEl = document.getElementById("supportToggle")
     const supportToggleLabelEl = document.getElementById("supportToggleLabel")
     const minimizeBtnEl = document.getElementById("minimizeBtn")
-    const expandBtnEl = document.getElementById("expandBtn")
+    const viewModeBtnEl = document.getElementById("viewModeBtn")
     const audioEl = new Audio()
     const isFileOrigin = window.location.protocol === "file:"
 
-    launcherBtnEl.title = "TISHA · ready"
+    launcherBtnEl.title = "TISHA ready"
     launcherBtnEl.querySelector(".launcher-mark").innerHTML = "&#10022;"
     panelShellEl.querySelector(".brand-mark").innerHTML = "&#10022;"
 
-    function loadPanelState() {
-      const stored = localStorage.getItem("tisha_panel_open")
+    function loadPanelMode() {
+      const stored = localStorage.getItem("tisha_panel_mode")
 
-      if (stored === "true") {
-        return true
+      if (stored === "full" || stored === "compact" || stored === "orb") {
+        return stored
       }
 
-      if (stored === "false") {
-        return false
-      }
-
-      return true
+      return "orb"
     }
 
     function loadSupportState() {
@@ -1019,8 +976,8 @@
       return null
     }
 
-    function savePanelState() {
-      localStorage.setItem("tisha_panel_open", String(isPanelOpen))
+    function savePanelMode() {
+      localStorage.setItem("tisha_panel_mode", panelMode)
     }
 
     function saveSupportState() {
@@ -1037,6 +994,10 @@
 
     function isDesktopLayout() {
       return window.innerWidth > 640
+    }
+
+    function isPanelVisible() {
+      return panelMode !== "orb"
     }
 
     function clampFloatingPosition(position, shellEl) {
@@ -1072,7 +1033,7 @@
     }
 
     function applyFloatingPosition(wrapperEl, shellEl, position, defaults) {
-      if (!isDesktopLayout() || !isPanelOpen) {
+      if (!isDesktopLayout() || !isPanelVisible()) {
         clearFloatingPositionStyles(wrapperEl)
         return
       }
@@ -1098,26 +1059,24 @@
         responseWrapEl,
         panelShellEl,
         responsePosition,
-        { right: "22px", bottom: "auto", top: "24px" }
-      ) || responsePosition
-
-      composerPosition = applyFloatingPosition(
-        composerWrapEl,
-        composerShellEl,
-        composerPosition,
         { right: "22px", bottom: "22px", top: "auto" }
-      ) || composerPosition
+      ) || responsePosition
     }
 
     function updatePanelState() {
-      panelShellEl.classList.toggle("minimized", !isPanelOpen)
-      responseWrapEl.classList.toggle("minimized", !isPanelOpen)
-      composerWrapEl.classList.toggle("minimized", !isPanelOpen)
-      launcherBtnEl.classList.toggle("hidden", isPanelOpen)
-      launcherBtnEl.setAttribute("aria-expanded", String(isPanelOpen))
-      expandBtnEl.disabled = isPanelOpen
-      minimizeBtnEl.disabled = !isPanelOpen
+      const isCompact = panelMode === "compact"
+      const isOrb = panelMode === "orb"
+
+      document.body.dataset.panelMode = panelMode
+      document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-orb", isOrb)
+      document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-full", panelMode === "full")
+      document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-compact", isCompact)
+      panelShellEl.classList.toggle("compact", isCompact)
+      launcherBtnEl.setAttribute("aria-expanded", String(!isOrb))
+      minimizeBtnEl.disabled = isOrb
+      viewModeBtnEl.textContent = isCompact ? "Show Guidance" : "Quick Controls"
       applyPanelPositions()
+      syncPopupSize()
     }
 
     function updateSupportState() {
@@ -1133,20 +1092,44 @@
       updateSupportState()
     }
 
-    function setPanelOpen(value) {
-      isPanelOpen = value
-      savePanelState()
+    function setPanelMode(nextMode) {
+      panelMode = nextMode
+      savePanelMode()
       updatePanelState()
 
-      if (isPanelOpen) {
+      if (isPanelVisible()) {
         window.setTimeout(() => {
           msgEl.focus()
         }, 120)
       }
     }
 
+    function syncPopupSize() {
+      if (!window.opener || typeof window.resizeTo !== "function") {
+        return
+      }
+
+      const sizes = {
+        orb: { width: 90, height: 90 },
+        compact: { width: 600, height: 310 },
+        full: { width: 600, height: 920 }
+      }
+
+      const target = sizes[panelMode]
+
+      if (!target) {
+        return
+      }
+
+      window.setTimeout(() => {
+        try {
+          window.resizeTo(target.width, target.height)
+        } catch {}
+      }, 30)
+    }
+
     function startPanelDrag(event, wrapperEl, shellEl, positionKey) {
-      if (!isDesktopLayout() || !isPanelOpen || isBusy || isRecording) {
+      if (!isDesktopLayout() || !isPanelVisible() || isBusy || isRecording) {
         return
       }
 
@@ -1183,8 +1166,6 @@
 
       if (dragState.positionKey === "response") {
         responsePosition = position
-      } else {
-        composerPosition = position
       }
 
       dragState.wrapperEl.style.left = position.left + "px"
@@ -1200,8 +1181,6 @@
 
       if (dragState.positionKey === "response") {
         saveFloatingPosition("tisha_response_position", responsePosition)
-      } else {
-        saveFloatingPosition("tisha_composer_position", composerPosition)
       }
 
       window.removeEventListener("pointermove", onPanelDrag)
@@ -1297,8 +1276,8 @@
       resetBtnEl.disabled = isBusy || isRecording
       micBtnEl.textContent = isRecording ? "Stop" : "Speak"
       recordingIndicatorEl.classList.toggle("active", isRecording)
-      minimizeBtnEl.disabled = !isPanelOpen
-      expandBtnEl.disabled = isPanelOpen
+      minimizeBtnEl.disabled = panelMode === "orb"
+      viewModeBtnEl.disabled = isBusy || isRecording
     }
 
     function buildFetchError(error, endpoint) {
@@ -1547,7 +1526,7 @@
         return
       }
 
-      setPanelOpen(true)
+      setPanelMode("full")
       setBusy(true)
       setStatus("Coach is responding...")
 
@@ -1604,7 +1583,7 @@
         return
       }
 
-      setPanelOpen(true)
+      setPanelMode("full")
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
         setStatus("This browser does not support microphone recording.")
@@ -1723,28 +1702,24 @@
       msgEl.value = ""
       updateSessionIndicator()
       setStatus("New session started.")
-      setPanelOpen(true)
+      setPanelMode("full")
     }
 
     launcherBtnEl.addEventListener("click", () => {
-      setPanelOpen(true)
+      setPanelMode("full")
     })
 
     panelTopbarEl.addEventListener("pointerdown", (event) => {
       startPanelDrag(event, responseWrapEl, panelShellEl, "response")
     })
 
-    composerTopbarEl.addEventListener("pointerdown", (event) => {
-      startPanelDrag(event, composerWrapEl, composerShellEl, "composer")
-    })
-
-    expandBtnEl.addEventListener("click", () => {
-      setPanelOpen(true)
+    viewModeBtnEl.addEventListener("click", () => {
+      setPanelMode(panelMode === "compact" ? "full" : "compact")
     })
 
     minimizeBtnEl.addEventListener("click", () => {
       if (!isBusy && !isRecording) {
-        setPanelOpen(false)
+        setPanelMode("orb")
       }
     })
 
@@ -1760,23 +1735,14 @@
     })
 
     window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && isPanelOpen && !isBusy && !isRecording) {
-        setPanelOpen(false)
+      if (event.key === "Escape" && isPanelVisible() && !isBusy && !isRecording) {
+        setPanelMode("orb")
       }
     })
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth <= 720 && !localStorage.getItem("tisha_panel_open")) {
-        isPanelOpen = true
-        updatePanelState()
-      }
-
       if (responsePosition) {
         responsePosition = clampFloatingPosition(responsePosition, panelShellEl)
-      }
-
-      if (composerPosition) {
-        composerPosition = clampFloatingPosition(composerPosition, composerShellEl)
       }
 
       applyPanelPositions()
@@ -1796,15 +1762,18 @@
 
     window.TishaCompanion = {
       open() {
-        setPanelOpen(true)
+        setPanelMode("full")
+      },
+      compact() {
+        setPanelMode("compact")
       },
       close() {
         if (!isBusy && !isRecording) {
-          setPanelOpen(false)
+          setPanelMode("orb")
         }
       },
       toggle() {
-        if (isPanelOpen) {
+        if (isPanelVisible()) {
           this.close()
         } else {
           this.open()
@@ -1812,9 +1781,7 @@
       },
       resetPositions() {
         responsePosition = null
-        composerPosition = null
         saveFloatingPosition("tisha_response_position", null)
-        saveFloatingPosition("tisha_composer_position", null)
         applyPanelPositions()
       }
     }
