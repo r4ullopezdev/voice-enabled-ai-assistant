@@ -55,6 +55,10 @@
       position: relative;
       min-height: 100vh;
       padding: 32px;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(0, var(--panel-width));
+      align-items: start;
+      gap: 32px;
       overflow: hidden;
     }
 
@@ -166,19 +170,21 @@
     }
 
     .companion-layer {
-      position: fixed;
-      right: 22px;
-      bottom: 22px;
-      z-index: 20;
+      position: sticky;
+      top: 24px;
+      z-index: 10;
       display: flex;
       justify-content: flex-end;
-      pointer-events: none;
+      width: min(100%, var(--panel-width));
+      min-height: 88px;
+      margin-left: auto;
+      pointer-events: auto;
     }
 
     .launcher {
       position: absolute;
-      right: 6px;
-      bottom: 6px;
+      right: 8px;
+      bottom: 8px;
       width: 58px;
       height: 58px;
       border: 0;
@@ -714,17 +720,18 @@
     @media (max-width: 960px) {
       .ambient-preview {
         max-width: 360px;
-        padding-right: 70px;
       }
     }
 
     @media (max-width: 640px) {
       .workspace-shell {
         padding: 18px;
+        display: block;
       }
 
       .ambient-preview {
         padding-right: 0;
+        max-width: none;
       }
 
       .ambient-preview h1 {
@@ -742,6 +749,8 @@
         margin-top: 22px;
         display: block;
         pointer-events: auto;
+        width: auto;
+        min-height: 0;
       }
 
       .launcher {
