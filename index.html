@@ -258,6 +258,12 @@
       background:
         radial-gradient(circle at top right, rgba(212, 148, 31, 0.16), transparent 34%),
         linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 240, 232, 0.94) 100%);
+      cursor: grab;
+      user-select: none;
+    }
+
+    .panel-shell.dragging .panel-topbar {
+      cursor: grabbing;
     }
 
     .panel-topbar::after {
@@ -925,6 +931,8 @@
     let playbackToken = 0
     let isPanelOpen = loadPanelState()
     let isSupportOpen = loadSupportState()
+    let panelPosition = loadPanelPosition()
+    let dragState = null
 
     const statusEl = document.getElementById("status")
     const sessionIndicatorEl = document.getElementById("sessionIndicator")
@@ -935,7 +943,9 @@
     const micBtnEl = document.getElementById("micBtn")
     const resetBtnEl = document.getElementById("resetBtn")
     const recordingIndicatorEl = document.getElementById("recordingIndicator")
+    const companionLayerEl = document.querySelector(".companion-layer")
     const launcherBtnEl = document.getElementById("launcherBtn")
+    const panelTopbarEl = document.querySelector(".panel-topbar")
     const panelShellEl = document.getElementById("panelShell")
     const supportCardEl = document.getElementById("supportCard")
     const supportBodyEl = document.getElementById("supportBody")
@@ -974,6 +984,23 @@
       return true
     }
 
+    function loadPanelPosition() {
+      try {
+        const stored = localStorage.getItem("tisha_panel_position")
+        const parsed = stored ? JSON.parse(stored) : null
+
+        if (
+          parsed &&
+          typeof parsed.left === "number" &&
+          typeof parsed.top === "number"
+        ) {
+          return parsed
+        }
+      } catch {}
+
+      return null
+    }
+
     function savePanelState() {
       localStorage.setItem("tisha_panel_open", String(isPanelOpen))
     }
@@ -982,12 +1009,81 @@
       localStorage.setItem("tisha_support_open", String(isSupportOpen))
     }
 
+    function savePanelPosition() {
+      if (panelPosition) {
+        localStorage.setItem("tisha_panel_position", JSON.stringify(panelPosition))
+      } else {
+        localStorage.removeItem("tisha_panel_position")
+      }
+    }
+
+    function isDesktopLayout() {
+      return window.innerWidth > 640
+    }
+
+    function clampPanelPosition(position) {
+      const panelWidth = companionPanelWidth()
+      const panelHeight = panelShellEl.offsetHeight || 760
+      const maxLeft = Math.max(12, window.innerWidth - panelWidth - 12)
+      const maxTop = Math.max(12, window.innerHeight - panelHeight - 12)
+
+      return {
+        left: Math.min(Math.max(12, position.left), maxLeft),
+        top: Math.min(Math.max(12, position.top), maxTop)
+      }
+    }
+
+    function companionPanelWidth() {
+      const styles = getComputedStyle(document.documentElement)
+      const value = styles.getPropertyValue("--panel-width").trim()
+      const temp = document.createElement("div")
+      temp.style.width = value
+      temp.style.position = "absolute"
+      temp.style.visibility = "hidden"
+      document.body.appendChild(temp)
+      const width = temp.getBoundingClientRect().width
+      temp.remove()
+      return width || 540
+    }
+
+    function clearPanelPositionStyles() {
+      companionLayerEl.style.left = ""
+      companionLayerEl.style.top = ""
+      companionLayerEl.style.right = ""
+      companionLayerEl.style.bottom = ""
+    }
+
+    function applyPanelPosition() {
+      if (!isDesktopLayout() || !isPanelOpen) {
+        companionLayerEl.classList.remove("is-draggable")
+        clearPanelPositionStyles()
+        return
+      }
+
+      companionLayerEl.classList.add("is-draggable")
+
+      if (!panelPosition) {
+        clearPanelPositionStyles()
+        companionLayerEl.style.right = "22px"
+        companionLayerEl.style.bottom = "22px"
+        return
+      }
+
+      const clamped = clampPanelPosition(panelPosition)
+      panelPosition = clamped
+      companionLayerEl.style.left = clamped.left + "px"
+      companionLayerEl.style.top = clamped.top + "px"
+      companionLayerEl.style.right = "auto"
+      companionLayerEl.style.bottom = "auto"
+    }
+
     function updatePanelState() {
       panelShellEl.classList.toggle("minimized", !isPanelOpen)
       launcherBtnEl.classList.toggle("hidden", isPanelOpen)
       launcherBtnEl.setAttribute("aria-expanded", String(isPanelOpen))
       expandBtnEl.disabled = isPanelOpen
       minimizeBtnEl.disabled = !isPanelOpen
+      applyPanelPosition()
     }
 
     function updateSupportState() {
@@ -1013,6 +1109,55 @@
           msgEl.focus()
         }, 120)
       }
+    }
+
+    function startPanelDrag(event) {
+      if (!isDesktopLayout() || !isPanelOpen || isBusy || isRecording) {
+        return
+      }
+
+      if (event.target.closest(".panel-actions")) {
+        return
+      }
+
+      const rect = companionLayerEl.getBoundingClientRect()
+      dragState = {
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top
+      }
+
+      panelShellEl.classList.add("dragging")
+      companionLayerEl.style.right = "auto"
+      companionLayerEl.style.bottom = "auto"
+
+      window.addEventListener("pointermove", onPanelDrag)
+      window.addEventListener("pointerup", stopPanelDrag)
+    }
+
+    function onPanelDrag(event) {
+      if (!dragState) {
+        return
+      }
+
+      panelPosition = clampPanelPosition({
+        left: event.clientX - dragState.offsetX,
+        top: event.clientY - dragState.offsetY
+      })
+
+      companionLayerEl.style.left = panelPosition.left + "px"
+      companionLayerEl.style.top = panelPosition.top + "px"
+    }
+
+    function stopPanelDrag() {
+      if (!dragState) {
+        return
+      }
+
+      dragState = null
+      panelShellEl.classList.remove("dragging")
+      savePanelPosition()
+      window.removeEventListener("pointermove", onPanelDrag)
+      window.removeEventListener("pointerup", stopPanelDrag)
     }
 
     function setStatus(message) {
@@ -1536,6 +1681,8 @@
       setPanelOpen(true)
     })
 
+    panelTopbarEl.addEventListener("pointerdown", startPanelDrag)
+
     expandBtnEl.addEventListener("click", () => {
       setPanelOpen(true)
     })
@@ -1568,6 +1715,12 @@
         isPanelOpen = true
         updatePanelState()
       }
+
+      if (panelPosition) {
+        panelPosition = clampPanelPosition(panelPosition)
+      }
+
+      applyPanelPosition()
     })
 
     if (conversationHistory.length > 0) {
