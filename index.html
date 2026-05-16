@@ -522,18 +522,6 @@
       gap: 6px;
     }
 
-    .section-toggle {
-      justify-self: start;
-      border: 0;
-      padding: 0;
-      background: transparent;
-      color: var(--brown);
-      font: 11px/1.2 "Courier New", Courier, monospace;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
     .status-text {
       margin: 0;
       color: var(--brown-dark);
@@ -550,10 +538,6 @@
       overflow-y: auto;
       overflow-x: hidden;
       scroll-behavior: smooth;
-    }
-
-    .response-card.collapsed .response-scroll {
-      display: none;
     }
 
     #replyBox {
@@ -898,7 +882,6 @@
             <div class="section-head">
               <div class="section-title">
                 <h3>Session Guidance</h3>
-                <button id="guidanceToggle" class="section-toggle" type="button">Show Session Guidance</button>
               </div>
               <p id="status" class="status-text">TISHA ready.</p>
             </div>
@@ -948,7 +931,6 @@
     let isAudioPlaying = false
     let panelMode = loadPanelMode()
     let isSupportOpen = loadSupportState()
-    let isGuidanceOpen = false
     let responsePosition = loadFloatingPosition("tisha_response_position")
     let orbPosition = loadFloatingPosition("tisha_orb_position")
     let orbDraggedAt = 0
@@ -972,8 +954,6 @@
     const supportBodyEl = document.getElementById("supportBody")
     const supportToggleEl = document.getElementById("supportToggle")
     const supportToggleLabelEl = document.getElementById("supportToggleLabel")
-    const responseCardEl = document.querySelector(".response-card")
-    const guidanceToggleEl = document.getElementById("guidanceToggle")
     const minimizeBtnEl = document.getElementById("minimizeBtn")
     const viewModeBtnEl = document.getElementById("viewModeBtn")
     const audioEl = new Audio()
@@ -1164,7 +1144,7 @@
       panelShellEl.classList.toggle("compact", isCompact)
       launcherBtnEl.setAttribute("aria-expanded", String(!isOrb))
       minimizeBtnEl.disabled = isOrb
-      viewModeBtnEl.textContent = isCompact ? "Show Guidance" : "Quick Controls"
+      viewModeBtnEl.textContent = isCompact ? "Show Guidance" : "Hide Guidance"
       applyPanelPositions()
       syncPopupSize()
     }
@@ -1176,34 +1156,16 @@
       supportToggleLabelEl.textContent = isSupportOpen ? "Hide" : "Show"
     }
 
-    function updateGuidanceState() {
-      responseCardEl.classList.toggle("collapsed", !isGuidanceOpen)
-      guidanceToggleEl.setAttribute("aria-expanded", String(isGuidanceOpen))
-      guidanceToggleEl.textContent = isGuidanceOpen ? "Hide Session Guidance" : "Show Session Guidance"
-    }
-
     function setSupportOpen(value) {
       isSupportOpen = value
       saveSupportState()
       updateSupportState()
     }
 
-    function setGuidanceOpen(value) {
-      isGuidanceOpen = value
-      updateGuidanceState()
-    }
-
     function setPanelMode(nextMode) {
-      const previousMode = panelMode
       panelMode = nextMode
       savePanelMode()
-
-      if (previousMode === "orb" && nextMode !== "orb") {
-        isGuidanceOpen = false
-      }
-
       updatePanelState()
-      updateGuidanceState()
 
       if (isPanelVisible()) {
         window.setTimeout(() => {
@@ -1702,7 +1664,7 @@
         return
       }
 
-      setPanelMode("full")
+      setPanelMode("compact")
       setBusy(true)
       setStatus("Coach is responding...")
 
@@ -1759,7 +1721,7 @@
         return
       }
 
-      setPanelMode("full")
+      setPanelMode("compact")
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
         setStatus("This browser does not support microphone recording.")
@@ -1878,7 +1840,7 @@
       msgEl.value = ""
       updateSessionIndicator()
       setStatus("New session started.")
-      setPanelMode("full")
+      setPanelMode("compact")
     }
 
     launcherBtnEl.addEventListener("click", () => {
@@ -1886,7 +1848,7 @@
         return
       }
 
-      setPanelMode("full")
+      setPanelMode("compact")
     })
 
     launcherBtnEl.addEventListener("pointerdown", (event) => {
@@ -1909,10 +1871,6 @@
 
     supportToggleEl.addEventListener("click", () => {
       setSupportOpen(!isSupportOpen)
-    })
-
-    guidanceToggleEl.addEventListener("click", () => {
-      setGuidanceOpen(!isGuidanceOpen)
     })
 
     msgEl.addEventListener("keydown", (event) => {
@@ -1949,13 +1907,12 @@
 
     updateSessionIndicator()
     updateSupportState()
-    updateGuidanceState()
     updatePanelState()
     updateControls()
 
     window.TishaCompanion = {
       open() {
-        setPanelMode("full")
+        setPanelMode("compact")
       },
       compact() {
         setPanelMode("compact")
