@@ -54,7 +54,6 @@
     .workspace-shell {
       position: relative;
       min-height: 100vh;
-      padding: 32px;
       overflow: hidden;
     }
 
@@ -84,85 +83,43 @@
       background: radial-gradient(circle, rgba(44, 36, 24, 0.1) 0%, rgba(44, 36, 24, 0) 72%);
     }
 
-    .ambient-preview {
-      max-width: 410px;
+    .overlay-host {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      z-index: 1;
       display: grid;
-      gap: 14px;
-      position: relative;
-      z-index: 0;
-      opacity: 0.88;
-    }
-
-    .preview-chip {
-      display: inline-flex;
-      align-items: center;
       gap: 10px;
-      width: fit-content;
-      padding: 8px 13px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255, 252, 247, 0.78);
-      color: var(--brown-dark);
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      max-width: 280px;
+      padding: 14px 16px;
+      border: 1px solid rgba(44, 36, 24, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 252, 247, 0.52);
       box-shadow: var(--shadow-sm);
       backdrop-filter: blur(10px);
+      pointer-events: none;
     }
 
-    .preview-chip-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--green);
-      box-shadow: 0 0 0 6px rgba(74, 122, 58, 0.12);
-    }
-
-    .ambient-preview h1 {
-      margin: 0;
-      max-width: 10ch;
-      font-size: clamp(2.2rem, 4.2vw, 3.8rem);
-      line-height: 0.98;
-      letter-spacing: -0.05em;
+    .overlay-host strong {
       color: var(--brown-dark);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
 
-    .ambient-preview p {
+    .overlay-host p {
       margin: 0;
-      max-width: 34ch;
-      color: var(--body);
-      font-size: 0.95rem;
-      line-height: 1.7;
-    }
-
-    .ambient-panels {
-      display: grid;
-      gap: 8px;
-      margin-top: 2px;
-    }
-
-    .ambient-card {
-      min-width: 0;
-      padding: 11px 13px;
-      border: 1px solid var(--border);
-      border-radius: 15px;
-      background: rgba(255, 252, 247, 0.56);
-      box-shadow: none;
-      backdrop-filter: blur(6px);
-    }
-
-    .ambient-card strong {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--brown-dark);
-      font-size: 0.96rem;
-      font-weight: 600;
-    }
-
-    .ambient-card span {
       color: var(--muted);
-      font-size: 0.84rem;
-      line-height: 1.5;
+      font-size: 0.88rem;
+      line-height: 1.65;
+    }
+
+    .ambient-preview,
+    .hero-signoff,
+    .ambient-panels,
+    .ambient-card,
+    .preview-chip {
+      display: none !important;
     }
 
     .companion-layer {
@@ -744,22 +701,6 @@
       background: var(--green);
     }
 
-    .hero-signoff {
-      display: grid;
-      gap: 4px;
-      margin-top: 0;
-    }
-
-    .hero-signoff em {
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .hero-signoff span {
-      color: var(--muted);
-      font: 11px/1.4 "Courier New", Courier, monospace;
-    }
-
     @keyframes pulse {
       0% {
         box-shadow: 0 0 0 0 rgba(195, 71, 54, 0.35);
@@ -774,35 +715,14 @@
       }
     }
 
-    @media (max-width: 960px) {
-      .ambient-preview {
-        max-width: 360px;
-      }
-    }
-
     @media (max-width: 640px) {
       .workspace-shell {
         padding: 18px;
       }
 
-      .ambient-preview {
-        padding-right: 0;
-        max-width: none;
-      }
-
-      .ambient-preview h1 {
-        max-width: 11ch;
-        font-size: clamp(2rem, 11vw, 3.2rem);
-      }
-
-      .ambient-panels {
-        display: grid;
-        grid-template-columns: 1fr;
-      }
-
       .companion-layer {
         position: static;
-        margin-top: 22px;
+        margin-top: 0;
         display: block;
         pointer-events: auto;
       }
@@ -818,10 +738,21 @@
         width: auto;
       }
 
+      .floating-wrap.minimized {
+        display: none;
+      }
+
       .launcher {
         position: fixed;
         right: 18px;
         bottom: 18px;
+      }
+
+      .overlay-host {
+        position: static;
+        max-width: none;
+        margin-bottom: 14px;
+        pointer-events: auto;
       }
 
       .panel-shell {
@@ -872,15 +803,11 @@
       .composer-card {
         border-radius: 18px;
       }
-
-      .ambient-preview p {
-        font-size: 1rem;
-      }
     }
   </style>
 </head>
 <body>
-  <div class="workspace-shell">
+  <div id="tishaCompanionRoot" class="workspace-shell" data-launch-mode="overlay">
     <section class="ambient-preview" aria-hidden="true">
       <div class="preview-chip">
         <span class="preview-chip-dot"></span>
@@ -905,6 +832,11 @@
         <span>&mdash; Norman, Founder of TISHA</span>
       </div>
     </section>
+
+    <aside class="overlay-host" aria-hidden="true">
+      <strong>TISHA &#183; Companion</strong>
+      <p>Overlay-ready emotional regulation support for live trading environments.</p>
+    </aside>
 
     <div class="companion-layer">
       <button id="launcherBtn" class="launcher" type="button" aria-label="Open TISHA companion" aria-expanded="false" title="TISHA · ready">
@@ -1038,6 +970,10 @@
     const audioEl = new Audio()
     const isFileOrigin = window.location.protocol === "file:"
 
+    launcherBtnEl.title = "TISHA · ready"
+    launcherBtnEl.querySelector(".launcher-mark").innerHTML = "&#10022;"
+    panelShellEl.querySelector(".brand-mark").innerHTML = "&#10022;"
+
     function loadPanelState() {
       const stored = localStorage.getItem("tisha_panel_open")
 
@@ -1049,7 +985,7 @@
         return false
       }
 
-      return window.innerWidth <= 720
+      return true
     }
 
     function loadSupportState() {
@@ -1857,6 +1793,31 @@
     updateSupportState()
     updatePanelState()
     updateControls()
+
+    window.TishaCompanion = {
+      open() {
+        setPanelOpen(true)
+      },
+      close() {
+        if (!isBusy && !isRecording) {
+          setPanelOpen(false)
+        }
+      },
+      toggle() {
+        if (isPanelOpen) {
+          this.close()
+        } else {
+          this.open()
+        }
+      },
+      resetPositions() {
+        responsePosition = null
+        composerPosition = null
+        saveFloatingPosition("tisha_response_position", null)
+        saveFloatingPosition("tisha_composer_position", null)
+        applyPanelPositions()
+      }
+    }
   </script>
 </body>
 </html>
