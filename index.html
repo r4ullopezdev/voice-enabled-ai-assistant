@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TISHA Trading Companion</title>
+  <link rel="icon" type="image/svg+xml" href="tisha-mark.svg">
   <style>
     :root {
       --cream: #f5f0e8;
@@ -84,12 +85,11 @@
     }
 
     .overlay-host {
-      display: none;
+      display: none !important;
       position: fixed;
       left: 24px;
       bottom: 24px;
       z-index: 1;
-      display: grid;
       gap: 10px;
       max-width: 280px;
       padding: 14px 16px;
@@ -850,46 +850,22 @@
               <div class="brand-copy">
                 <p class="eyebrow">Trading Companion</p>
                 <h2>TISHA</h2>
-                <span>Your real-time emotional coach &mdash; one click away.</span>
+                <span>TISHA ready.</span>
               </div>
             </div>
 
             <div class="panel-actions">
-              <button id="viewModeBtn" class="text-btn" type="button">Quick Controls</button>
               <button id="minimizeBtn" class="ghost-btn" type="button">Minimize &#9472;</button>
             </div>
           </div>
 
           <div class="session-strip">
             <p id="sessionIndicator" class="status-pill" data-state="new">TISHA ready</p>
+            <p id="status" class="status-text">Speak or type what&apos;s happening.</p>
           </div>
         </header>
 
         <div class="panel-body">
-          <section id="supportCard" class="support-card">
-            <button id="supportToggle" class="support-toggle" type="button" aria-expanded="true">
-              <strong>How to use</strong>
-              <span id="supportToggleLabel">Hide</span>
-            </button>
-            <div id="supportBody" class="support-body">
-              <p>
-                Type what you are feeling, or tap <em>Speak</em> to use the microphone. Read the guidance slowly, follow it in real time, and start a new session any time you want a clean reset.
-              </p>
-            </div>
-          </section>
-
-          <section class="response-card">
-            <div class="section-head">
-              <div class="section-title">
-                <h3>Session Guidance</h3>
-              </div>
-              <p id="status" class="status-text">TISHA ready.</p>
-            </div>
-            <div id="replyScroll" class="response-scroll">
-              <p id="replyBox" class="response-placeholder">Guidance will appear here once the session begins.</p>
-            </div>
-          </section>
-
           <section class="composer-card">
             <div class="input-wrap">
               <input id="msg" placeholder="What's happening right now?" />
@@ -902,9 +878,8 @@
             </div>
 
             <div class="composer-foot">
-              <div class="foot-note">Stay present, follow the pacing, and respond out loud or silently when prompted.</div>
+              <div class="foot-note">TISHA ready.</div>
               <div id="recordingIndicator" class="recording-indicator">mic ready</div>
-              <div class="behavior-note">Audio playback remains active in this panel</div>
             </div>
           </section>
         </div>
@@ -930,7 +905,6 @@
     let playbackToken = 0
     let isAudioPlaying = false
     let panelMode = loadPanelMode()
-    let isSupportOpen = loadSupportState()
     let responsePosition = loadFloatingPosition("tisha_response_position")
     let orbPosition = loadFloatingPosition("tisha_orb_position")
     let orbDraggedAt = 0
@@ -938,8 +912,6 @@
 
     const statusEl = document.getElementById("status")
     const sessionIndicatorEl = document.getElementById("sessionIndicator")
-    const replyBoxEl = document.getElementById("replyBox")
-    const replyScrollEl = document.getElementById("replyScroll")
     const msgEl = document.getElementById("msg")
     const sendBtnEl = document.getElementById("sendBtn")
     const micBtnEl = document.getElementById("micBtn")
@@ -950,18 +922,13 @@
     const launcherBtnEl = document.getElementById("launcherBtn")
     const panelTopbarEl = document.querySelector(".panel-topbar")
     const panelShellEl = document.getElementById("panelShell")
-    const supportCardEl = document.getElementById("supportCard")
-    const supportBodyEl = document.getElementById("supportBody")
-    const supportToggleEl = document.getElementById("supportToggle")
-    const supportToggleLabelEl = document.getElementById("supportToggleLabel")
     const minimizeBtnEl = document.getElementById("minimizeBtn")
-    const viewModeBtnEl = document.getElementById("viewModeBtn")
     const audioEl = new Audio()
     const isFileOrigin = window.location.protocol === "file:"
 
     launcherBtnEl.title = "TISHA ready"
-    launcherBtnEl.querySelector(".launcher-mark").innerHTML = "&#10022;"
-    panelShellEl.querySelector(".brand-mark").innerHTML = "&#10022;"
+    launcherBtnEl.innerHTML = '<img class="launcher-mark" src="tisha-mark.svg" alt="TISHA">'
+    panelShellEl.querySelector(".brand-mark").outerHTML = '<img class="brand-mark" src="tisha-mark.svg" alt="TISHA">'
     audioEl.addEventListener("play", () => updatePlaybackState(true))
     audioEl.addEventListener("playing", () => updatePlaybackState(true))
     audioEl.addEventListener("pause", () => {
@@ -977,25 +944,11 @@
     function loadPanelMode() {
       const stored = localStorage.getItem("tisha_panel_mode")
 
-      if (stored === "full" || stored === "compact" || stored === "orb") {
+      if (stored === "compact" || stored === "orb") {
         return stored
       }
 
       return "orb"
-    }
-
-    function loadSupportState() {
-      const stored = localStorage.getItem("tisha_support_open")
-
-      if (stored === "true") {
-        return true
-      }
-
-      if (stored === "false") {
-        return false
-      }
-
-      return true
     }
 
     function loadFloatingPosition(storageKey) {
@@ -1017,10 +970,6 @@
 
     function savePanelMode() {
       localStorage.setItem("tisha_panel_mode", panelMode)
-    }
-
-    function saveSupportState() {
-      localStorage.setItem("tisha_support_open", String(isSupportOpen))
     }
 
     function saveFloatingPosition(storageKey, position) {
@@ -1134,32 +1083,14 @@
     }
 
     function updatePanelState() {
-      const isCompact = panelMode === "compact"
       const isOrb = panelMode === "orb"
 
       document.body.dataset.panelMode = panelMode
       document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-orb", isOrb)
-      document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-full", panelMode === "full")
-      document.getElementById("tishaCompanionRoot").classList.toggle("panel-state-compact", isCompact)
-      panelShellEl.classList.toggle("compact", isCompact)
       launcherBtnEl.setAttribute("aria-expanded", String(!isOrb))
       minimizeBtnEl.disabled = isOrb
-      viewModeBtnEl.textContent = isCompact ? "Show Guidance" : "Hide Guidance"
       applyPanelPositions()
       syncPopupSize()
-    }
-
-    function updateSupportState() {
-      supportCardEl.classList.toggle("collapsed", !isSupportOpen)
-      supportToggleEl.setAttribute("aria-expanded", String(isSupportOpen))
-      supportBodyEl.hidden = !isSupportOpen
-      supportToggleLabelEl.textContent = isSupportOpen ? "Hide" : "Show"
-    }
-
-    function setSupportOpen(value) {
-      isSupportOpen = value
-      saveSupportState()
-      updateSupportState()
     }
 
     function setPanelMode(nextMode) {
@@ -1181,8 +1112,7 @@
 
       const sizes = {
         orb: { width: 90, height: 90 },
-        compact: { width: 600, height: 310 },
-        full: { width: 600, height: 920 }
+        compact: { width: 600, height: 350 }
       }
 
       const target = sizes[panelMode]
@@ -1409,7 +1339,6 @@
       micBtnEl.textContent = isRecording ? "Stop" : "Speak"
       recordingIndicatorEl.classList.toggle("active", isRecording)
       minimizeBtnEl.disabled = panelMode === "orb"
-      viewModeBtnEl.disabled = isBusy || isRecording
 
       if (isRecording) {
         recordingIndicatorEl.textContent = "recording"
@@ -1643,15 +1572,6 @@
       }
     }
 
-    function renderReply(reply) {
-      replyBoxEl.textContent = reply
-      replyBoxEl.classList.toggle("response-placeholder", !reply)
-      replyScrollEl.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      })
-    }
-
     async function send(force = false) {
       const text = msgEl.value.trim()
 
@@ -1691,7 +1611,6 @@
         }
 
         const reply = data.reply || ""
-        renderReply(reply)
 
         if (!reply) {
           throw new Error("The AI returned an empty reply")
@@ -1836,7 +1755,6 @@
       localStorage.removeItem("tdt_conversation_history")
       localStorage.removeItem("tdt_last_mode")
       lastMode = null
-      renderReply("Guidance will appear here once the session begins.")
       msgEl.value = ""
       updateSessionIndicator()
       setStatus("New session started.")
@@ -1859,18 +1777,10 @@
       startPanelDrag(event, responseWrapEl, panelShellEl, "response")
     })
 
-    viewModeBtnEl.addEventListener("click", () => {
-      setPanelMode(panelMode === "compact" ? "full" : "compact")
-    })
-
     minimizeBtnEl.addEventListener("click", () => {
       if (!isBusy && !isRecording) {
         setPanelMode("orb")
       }
-    })
-
-    supportToggleEl.addEventListener("click", () => {
-      setSupportOpen(!isSupportOpen)
     })
 
     msgEl.addEventListener("keydown", (event) => {
@@ -1898,15 +1808,7 @@
       applyPanelPositions()
     })
 
-    if (conversationHistory.length > 0) {
-      const latestAssistant = [...conversationHistory].reverse().find((item) => item.role === "assistant")
-      if (latestAssistant) {
-        renderReply(latestAssistant.content)
-      }
-    }
-
     updateSessionIndicator()
-    updateSupportState()
     updatePanelState()
     updateControls()
 
